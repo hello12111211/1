@@ -8,155 +8,116 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background-color: var(--bg);
-      color: var(--text);
-      transition: background 0.2s, color 0.2s;
-    }
+    body { font-family: sans-serif; padding: 20px; }
     .message { margin: 10px 0; }
     .reaction { cursor: pointer; margin-left: 5px; }
     .admin-btn { margin-left: 10px; color: red; cursor: pointer; }
-    .dark { --bg: #121212; --text: #f1f1f1; }
-    .light { --bg: #fff; --text: #000; }
+    .message-box { width: 100%; height: 300px; overflow-y: scroll; border: 1px solid #ccc; margin-bottom: 10px; }
+    .dark { background-color: #333; color: white; }
+    .light { background-color: white; color: black; }
   </style>
 </head>
 <body>
   <h1>Live Chat 💬</h1>
-  <button onclick="toggleTheme()">🌓 Toggle Theme</button>
-  <div id="messages"></div>
+  <div id="messages" class="message-box"></div>
   <input id="msgInput" placeholder="Type a message..." />
   <button onclick="sendMessage()">Send</button>
+  <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
-      authDomain: "project-7865777163369990472.firebaseapp.com",
-      databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
-      projectId: "project-7865777163369990472",
-      storageBucket: "project-7865777163369990472.appspot.com",
-      messagingSenderId: "312681869598",
-      appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
-      measurementId: "G-QPD0FBW5KW"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  const firebaseConfig = {
+    apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
+    authDomain: "project-7865777163369990472.firebaseapp.com",
+    databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
+    projectId: "project-7865777163369990472",
+    storageBucket: "project-7865777163369990472.firebasestorage.app",
+    messagingSenderId: "312681869598",
+    appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
+    measurementId: "G-QPD0FBW5KW"
+  };
+    
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  let userId = null;
+  const adminUID = "EzBYJVLOBJXpEfitCitFpssDMn13";
+  let darkMode = localStorage.getItem("darkMode") === "true";
+  
+  // Set initial dark mode state
+  if (darkMode) {
+    document.body.classList.add("dark");
+  } else {
+    document.body.classList.add("light");
+  }
 
-    const room = prompt("Enter chatroom name:") || "default";
-    const messagesRef = db.ref("rooms/" + room);
+  firebase.auth().signInAnonymously().then(user => {
+    userId = user.user.uid;
+  });
 
-    // Theme setup
-    function setTheme(mode) {
-      document.body.className = mode;
-      localStorage.setItem("theme", mode);
-    }
-    function toggleTheme() {
-      const current = localStorage.getItem("theme") || "light";
-      setTheme(current === "light" ? "dark" : "light");
-    }
-    setTheme(localStorage.getItem("theme") || "light");
+  function sendMessage() {
+    const text = document.getElementById('msgInput').value;
+    if (!text) return;
 
-    // Auth and admin login
-    let userId = null;
-    let isAdmin = false;
-    const adminPassword = "💀"; // Change if you want
-    if (prompt("Enter admin password (or leave blank):") === adminPassword) {
-      isAdmin = true;
-    }
-    firebase.auth().signInAnonymously().then(user => {
-      userId = user.user.uid;
-    });
+    // Filter banned words
+    fetch('banned-words.txt')
+      .then(response => response.text())
+      .then(bannedWords => {
+        const bannedArray = bannedWords.split('\n').map(word => word.trim());
+        const filteredText = bannedArray.reduce((acc, word) => acc.replace(new RegExp(`\\b${word}\\b`, 'gi'), '***'), text);
+        db.ref('messages').push({ text: filteredText, uid: userId, reactions: {}, timestamp: new Date().toLocaleTimeString() });
+      });
 
-    // Send message
-    function sendMessage() {
-      const text = document.getElementById("msgInput").value.trim();
-      if (!text) return;
+    document.getElementById('msgInput').value = '';
+  }
 
-      // Bad word filter
-      const badWords = ["badword1", "badword2"];
-      const hasBadWords = badWords.some(w => text.toLowerCase().includes(w));
-      if (hasBadWords) {
-        alert("Message contains inappropriate language.");
-        return;
+  db.ref('messages').on('value', snapshot => {
+    const messages = snapshot.val();
+    const msgDiv = document.getElementById('messages');
+    msgDiv.innerHTML = '';
+
+    for (let id in messages) {
+      const msg = messages[id];
+      const div = document.createElement('div');
+      div.className = 'message';
+      div.innerHTML = `<b>${msg.uid === userId ? 'You' : 'User'}</b>: ${msg.text} <span>${msg.timestamp}</span>`;
+
+      // Emoji reactions
+      const emojiList = ['👍', '😂', '❤️'];
+      emojiList.forEach(emoji => {
+        const span = document.createElement('span');
+        span.className = 'reaction';
+        span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
+        span.onclick = () => addReaction(id, emoji);
+        div.appendChild(span);
+      });
+
+      if (userId === adminUID) {
+        const del = document.createElement('span');
+        del.className = 'admin-btn';
+        del.innerText = '🗑️';
+        del.onclick = () => db.ref('messages/' + id).remove();
+        div.appendChild(del);
       }
 
-      messagesRef.push({
-        text,
-        uid: userId,
-        reactions: {},
-        userReactions: {},
-        timestamp: Date.now()
-      });
-      document.getElementById("msgInput").value = '';
+      msgDiv.appendChild(div);
     }
+  });
 
-    // Render messages
-    messagesRef.on('value', snapshot => {
-      const messages = snapshot.val();
-      const msgDiv = document.getElementById("messages");
-      msgDiv.innerHTML = '';
-      for (let id in messages) {
-        const msg = messages[id];
-        const div = document.createElement("div");
-        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '';
-        div.className = "message";
-        div.innerHTML = `<b>${msg.uid === userId ? 'You' : 'User'}</b> [${time}]: ${msg.text}`;
+  function addReaction(msgId, emoji) {
+    const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
+    ref.transaction(curr => (curr || 0) + 1);
+  }
 
-        const emojiList = ['👍', '😂', '❤️'];
-        emojiList.forEach(emoji => {
-          const span = document.createElement("span");
-          const userHasReacted = msg.userReactions?.[userId] === emoji;
-          span.className = "reaction";
-          span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
-          span.onclick = () => {
-            if (userHasReacted) {
-              removeReaction(id, emoji);
-            } else {
-              changeReaction(id, emoji);
-            }
-          };
-          div.appendChild(span);
-        });
-
-        if (isAdmin) {
-          const del = document.createElement("span");
-          del.className = "admin-btn";
-          del.innerText = "🗑️";
-          del.onclick = () => messagesRef.child(id).remove();
-          div.appendChild(del);
-        }
-
-        msgDiv.appendChild(div);
-      }
-    });
-
-    // Emoji reaction system
-    function changeReaction(msgId, emoji) {
-      const msgRef = messagesRef.child(msgId);
-      msgRef.once("value", snap => {
-        const msg = snap.val();
-        const prev = msg.userReactions?.[userId];
-        const updates = {};
-        if (prev) {
-          updates[`reactions/${prev}`] = (msg.reactions?.[prev] || 1) - 1;
-        }
-        updates[`reactions/${emoji}`] = (msg.reactions?.[emoji] || 0) + 1;
-        updates[`userReactions/${userId}`] = emoji;
-        msgRef.update(updates);
-      });
+  function toggleDarkMode() {
+    darkMode = !darkMode;
+    localStorage.setItem("darkMode", darkMode);
+    if (darkMode) {
+      document.body.classList.remove("light");
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+      document.body.classList.add("light");
     }
-
-    function removeReaction(msgId, emoji) {
-      const msgRef = messagesRef.child(msgId);
-      msgRef.once("value", snap => {
-        const msg = snap.val();
-        const updates = {};
-        updates[`reactions/${emoji}`] = (msg.reactions?.[emoji] || 1) - 1;
-        updates[`userReactions/${userId}`] = null;
-        msgRef.update(updates);
-      });
-    }
+  }
   </script>
 </body>
 </html>

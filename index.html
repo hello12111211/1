@@ -21,16 +21,16 @@
   <button onclick="sendMessage()">Send</button>
 
   <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
-    authDomain: "project-7865777163369990472.firebaseapp.com",
-    databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
-    projectId: "project-7865777163369990472",
-    storageBucket: "project-7865777163369990472.appspot.com"
-    messagingSenderId: "312681869598",
-    appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
-    measurementId: "G-QPD0FBW5KW"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
+      authDomain: "project-7865777163369990472.firebaseapp.com",
+      databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com", // Updated databaseURL
+      projectId: "project-7865777163369990472",
+      storageBucket: "project-7865777163369990472.appspot.com", // Corrected storageBucket URL
+      messagingSenderId: "312681869598",
+      appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
+      measurementId: "G-QPD0FBW5KW"
+    };
     
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -86,4 +86,3 @@
   </script>
 </body>
 </html>
-

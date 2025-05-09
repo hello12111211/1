@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live Chat App</title>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -11,103 +11,119 @@
     body {
       font-family: sans-serif;
       padding: 20px;
-      background-color: white;
-      color: black;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    .dark {
-      background-color: #1e1e1e;
-      color: white;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background 0.2s, color 0.2s;
     }
     .message { margin: 10px 0; }
     .reaction { cursor: pointer; margin-left: 5px; }
     .admin-btn { margin-left: 10px; color: red; cursor: pointer; }
-    #adminControls, #themeToggle { margin-bottom: 20px; }
-    input, button {
-      padding: 5px;
-      margin-top: 10px;
-    }
+    .dark { --bg: #121212; --text: #f1f1f1; }
+    .light { --bg: #fff; --text: #000; }
   </style>
 </head>
 <body>
   <h1>Live Chat 💬</h1>
-
-  <div id="themeToggle">
-    <button onclick="toggleTheme()">Toggle Light/Dark Mode</button>
-  </div>
-
-  <div id="adminControls">
-    <input type="password" id="adminPass" placeholder="Enter admin password" />
-    <button onclick="enableAdmin()">Unlock Admin</button>
-  </div>
-
+  <button onclick="toggleTheme()">🌓 Toggle Theme</button>
   <div id="messages"></div>
   <input id="msgInput" placeholder="Type a message..." />
   <button onclick="sendMessage()">Send</button>
 
   <script>
-    // Load theme from localStorage
-    if (localStorage.getItem("theme") === "dark") {
-      document.body.classList.add("dark");
-    }
-
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      const newTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
-      localStorage.setItem("theme", newTheme);
-    }
-
     const firebaseConfig = {
       apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
       authDomain: "project-7865777163369990472.firebaseapp.com",
       databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
       projectId: "project-7865777163369990472",
-      storageBucket: "project-7865777163369990472.firebasestorage.app",
+      storageBucket: "project-7865777163369990472.appspot.com",
       messagingSenderId: "312681869598",
       appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
       measurementId: "G-QPD0FBW5KW"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    const room = prompt("Enter chatroom name:") || "default";
+    const messagesRef = db.ref("rooms/" + room);
+
+    // Theme setup
+    function setTheme(mode) {
+      document.body.className = mode;
+      localStorage.setItem("theme", mode);
+    }
+    function toggleTheme() {
+      const current = localStorage.getItem("theme") || "light";
+      setTheme(current === "light" ? "dark" : "light");
+    }
+    setTheme(localStorage.getItem("theme") || "light");
+
+    // Auth and admin login
     let userId = null;
     let isAdmin = false;
-
+    const adminPassword = "💀"; // Change if you want
+    if (prompt("Enter admin password (or leave blank):") === adminPassword) {
+      isAdmin = true;
+    }
     firebase.auth().signInAnonymously().then(user => {
       userId = user.user.uid;
     });
 
+    // Send message
     function sendMessage() {
-      const text = document.getElementById('msgInput').value;
+      const text = document.getElementById("msgInput").value.trim();
       if (!text) return;
-      db.ref('messages').push({ text, uid: userId, reactions: {} });
-      document.getElementById('msgInput').value = '';
+
+      // Bad word filter
+      const badWords = ["badword1", "badword2"];
+      const hasBadWords = badWords.some(w => text.toLowerCase().includes(w));
+      if (hasBadWords) {
+        alert("Message contains inappropriate language.");
+        return;
+      }
+
+      messagesRef.push({
+        text,
+        uid: userId,
+        reactions: {},
+        userReactions: {},
+        timestamp: Date.now()
+      });
+      document.getElementById("msgInput").value = '';
     }
 
-    db.ref('messages').on('value', snapshot => {
+    // Render messages
+    messagesRef.on('value', snapshot => {
       const messages = snapshot.val();
-      const msgDiv = document.getElementById('messages');
+      const msgDiv = document.getElementById("messages");
       msgDiv.innerHTML = '';
       for (let id in messages) {
         const msg = messages[id];
-        const div = document.createElement('div');
-        div.className = 'message';
-        div.innerHTML = `<b>${msg.uid === userId ? 'You' : 'User'}</b>: ${msg.text}`;
+        const div = document.createElement("div");
+        const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '';
+        div.className = "message";
+        div.innerHTML = `<b>${msg.uid === userId ? 'You' : 'User'}</b> [${time}]: ${msg.text}`;
 
         const emojiList = ['👍', '😂', '❤️'];
         emojiList.forEach(emoji => {
-          const span = document.createElement('span');
-          span.className = 'reaction';
+          const span = document.createElement("span");
+          const userHasReacted = msg.userReactions?.[userId] === emoji;
+          span.className = "reaction";
           span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
-          span.onclick = () => addReaction(id, emoji);
+          span.onclick = () => {
+            if (userHasReacted) {
+              removeReaction(id, emoji);
+            } else {
+              changeReaction(id, emoji);
+            }
+          };
           div.appendChild(span);
         });
 
         if (isAdmin) {
-          const del = document.createElement('span');
-          del.className = 'admin-btn';
-          del.innerText = '🗑️';
-          del.onclick = () => db.ref('messages/' + id).remove();
+          const del = document.createElement("span");
+          del.className = "admin-btn";
+          del.innerText = "🗑️";
+          del.onclick = () => messagesRef.child(id).remove();
           div.appendChild(del);
         }
 
@@ -115,20 +131,31 @@
       }
     });
 
-    function addReaction(msgId, emoji) {
-      const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
-      ref.transaction(curr => (curr || 0) + 1);
+    // Emoji reaction system
+    function changeReaction(msgId, emoji) {
+      const msgRef = messagesRef.child(msgId);
+      msgRef.once("value", snap => {
+        const msg = snap.val();
+        const prev = msg.userReactions?.[userId];
+        const updates = {};
+        if (prev) {
+          updates[`reactions/${prev}`] = (msg.reactions?.[prev] || 1) - 1;
+        }
+        updates[`reactions/${emoji}`] = (msg.reactions?.[emoji] || 0) + 1;
+        updates[`userReactions/${userId}`] = emoji;
+        msgRef.update(updates);
+      });
     }
 
-    function enableAdmin() {
-      const inputPass = document.getElementById('adminPass').value;
-      const correctPass = "letmein"; // 🔐 CHANGE THIS!
-      if (inputPass === correctPass) {
-        isAdmin = true;
-        alert("✅ Admin mode enabled!");
-      } else {
-        alert("❌ Incorrect password.");
-      }
+    function removeReaction(msgId, emoji) {
+      const msgRef = messagesRef.child(msgId);
+      msgRef.once("value", snap => {
+        const msg = snap.val();
+        const updates = {};
+        updates[`reactions/${emoji}`] = (msg.reactions?.[emoji] || 1) - 1;
+        updates[`userReactions/${userId}`] = null;
+        msgRef.update(updates);
+      });
     }
   </script>
 </body>

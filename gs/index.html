@@ -13,11 +13,38 @@
   <body>
 
     <h1>Select your game</h1>
+    <br>
+    <h2>Games on websites</h2>
     <a id="alien" href="https://hello12111211.github.io/e/games/alien.html">Alien blaster</a>
     <br>
     <a id="pixel" href="https://hello12111211.github.io/e/games/pixelduel.html">Pixel duel</a>
     <br>
     <br>
+    <h2>Games for your bookmarks</h2>
+    <p>designed for ipad</p>
+    
+<a href="javascript:(function()%7B%20%20%20const%20shootOptions%20=%20%5B'left',%20'centre',%20'right'%5D;%20%20%20const%20playerShoot%20=%20()%20=%3E%20prompt('Choose%20where%20to%20shoot:%20left,%20centre,%20right').toLowerCase();%20%20%20const%20goalieSave%20=%20()%20=%3E%20shootOptions%5BMath.floor(Math.random()%20*%20shootOptions.length)%5D;%20%20%20%20%20%20let%20playerScore%20=%200;%20%20%20let%20goalieScore%20=%200;%20%20%20%20for%20(let%20i%20=%200;%20i%20%3C%205;%20i++)%20%7B%20%20%20%20%20const%20playerChoice%20=%20playerShoot();%20%20%20%20%20const%20goalieChoice%20=%20goalieSave();%20%20%20%20%20%20%20%20%20%20if%20(shootOptions.includes(playerChoice))%20%7B%20%20%20%20%20%20%20if%20(playerChoice%20!==%20goalieChoice)%20%7B%20%20%20%20%20%20%20%20%20playerScore++;%20%20%20%20%20%20%20%20%20alert(%60You%20scored!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20%20%20goalieScore++;%20%20%20%20%20%20%20%20%20alert(%60Saved!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20alert('Invalid%20choice,%20you%20missed!');%20%20%20%20%20%7D%20%20%20%7D%20%20%20%20alert(%60Game%20Over!%5CnPlayer%20Score:%20$%7BplayerScore%7D%5CnGoalie%20Score:%20$%7BgoalieScore%7D%60);%20%7D)();">Football penaltys</a>
+    <br>
+<a href="javascript:(function()%7Bconst%20cities=%5B%22London%22,%22Manchester%22,%22Birmingham%22,%22Leeds%22,%22Liverpool%22,%22Bristol%22,%22Sheffield%22,%22Newcastle%22,%22Nottingham%22,%22Leicester%22,%22Coventry%22,%22Sunderland%22,%22Southampton%22,%22Wolverhampton%22,%22Plymouth%22,%22Derby%22,%22Stoke-on-Trent%22,%22Reading%22,%22Luton%22,%22Swindon%22%5D;let%20selectedCity,jumbledCity,remainingLives;function%20jumbleCity(city)%7Bconst%20cityArr=city.split('');for(let%20i=cityArr.length*2-1;i%3E0;i--)%7Bconst%20j=Math.floor(Math.random()*(i+1));%5BcityArr%5Bi%25cityArr.length%5D,cityArr%5Bj%25cityArr.length%5D%5D=%5BcityArr%5Bj%25cityArr.length%5D,cityArr%5Bi%25cityArr.length%5D%5D%7Dreturn%20cityArr.join('')%7Dfunction%20startGame()%7BremainingLives=3;selectedCity=cities%5BMath.floor(Math.random()*cities.length)%5D;jumbledCity=jumbleCity(selectedCity);alert(%22Jumbled%20City:%20%22+jumbledCity);promptGuess()%7Dfunction%20promptGuess()%7Bconst%20userGuess=prompt(%22Jumbled%20City:%20%22+jumbledCity+%22%5CnEnter%20your%20guess%20(Lives%20remaining:%20%22+remainingLives+%22):%22);if(userGuess===null)return;checkGuess(userGuess)%7Dfunction%20checkGuess(userGuess)%7Bif(userGuess.toLowerCase()===selectedCity.toLowerCase())%7Balert(%22Congratulations!%20You%20guessed%20it%20right!%22);startGame()%7Delse%7BremainingLives--;if(remainingLives%3E0)%7Balert(%22Wrong%20guess!%20Try%20again.%22);promptGuess()%7Delse%7Balert(%22Game%20Over!%20The%20correct%20city%20was%20%22+selectedCity+%22.%20Starting%20a%20new%20game...%22);startGame()%7D%7D%7DstartGame()%7D)();">Scrambled up English citys</a>
+    <br>
+<a href="javascript:(function()%20%7B%20%20%20%20%20const%20countries%20=%20%5B%20%20%20%20%20%20%20%20%20%7B%20name:%20%22France%22,%20emojis:%20%22🥖🍷%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Japan%22,%20emojis:%20%22🍣🎎%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Brazil%22,%20emojis:%20%22🌴⚽%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Australia%22,%20emojis:%20%22🐨🏄%E2%80%8D♂%EF%B8%8F%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Canada%22,%20emojis:%20%22🍁🏒%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Germany%22,%20emojis:%20%22🍺🍂%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Italy%22,%20emojis:%20%22🍕🍝%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22England%22,%20emojis:%20%22☕🎡%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22usa%22,%20emojis:%20%22🍔🎬%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22India%22,%20emojis:%20%22🕌🕉%EF%B8%8F%22%20%7D,%20%20%20%20%20%20%20%20%20%7B%20name:%20%22Iceland%22,%20emojis:%20%22🥶🛬%22%20%7D%20%20%20%20%20%5D;%20%20%20%20%20%20const%20randomCountry%20=%20countries%5BMath.floor(Math.random()%20*%20countries.length)%5D;%20%20%20%20%20let%20attempts%20=%203;%20%20%20%20%20let%20guessedCorrectly%20=%20false;%20%20%20%20%20%20while%20(attempts%20%3E%200%20&&%20!guessedCorrectly)%20%7B%20%20%20%20%20%20%20%20%20const%20guess%20=%20prompt(%60Guess%20the%20country%20from%20these%20emojis:%20$%7BrandomCountry.emojis%7D%5CnYou%20have%20$%7Battempts%7D%20attempts%20left:%60).trim();%20%20%20%20%20%20%20%20%20%20if%20(guess.toLowerCase()%20===%20randomCountry.name.toLowerCase())%20%7B%20%20%20%20%20%20%20%20%20%20%20%20%20alert(%22Congratulations!%20You%20guessed%20the%20country%20correctly.%22);%20%20%20%20%20%20%20%20%20%20%20%20%20guessedCorrectly%20=%20true;%20%20%20%20%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20%20%20%20%20%20%20attempts%20-=%201;%20%20%20%20%20%20%20%20%20%20%20%20%20if%20(attempts%20%3E%200)%20%7B%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20alert(%22Incorrect%20guess.%20Try%20again.%22);%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20alert(%60Sorry,%20you're%20out%20of%20attempts.%20The%20correct%20answer%20was%20$%7BrandomCountry.name%7D.%60);%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%20%20%20%20%20%20%20%20%20%7D%20%20%20%20%20%7D%20%7D)();">Guess the country by emojis</a>
+
+    <br>
+<a href="javascript:(function()%7Bvar%20teams=%5B%7Bemoji:%22🔴👹%22,name:%22Manchester%20United%22%7D,%7Bemoji:%22🔵🚤%22,name:%22Manchester%20City%22%7D,%7Bemoji:%22🔴🐦%E2%80%8D🔥%22,name:%22Liverpool%22%7D,%7Bemoji:%22🔵⚪%EF%B8%8F%22,name:%22Chelsea%22%7D,%7Bemoji:%22🔴⚪%EF%B8%8F%22,name:%22Arsenal%22%7D,%7Bemoji:%22⚪%EF%B8%8F🐓%22,name:%22Tottenham%22%7D,%7Bemoji:%22🔴⚫%22,name:%22Bournemouth%22%7D,%7Bemoji:%22🟠🦊%22,name:%22Leicester%20City%22%7D,%7Bemoji:%22🦁💜%22,name:%22Aston%20Villa%22%7D,%7Bemoji:%22🔵🦅%22,name:%22Crystal%20Palace%22%7D%5D;var%20currentIndex=0;var%20guesses=3;function%20showNextTeam()%7Bif(currentIndex%3E=teams.length)%7Balert(%22You've%20guessed%20all%20the%20teams!%22);return%7Dvar%20team=teams%5BcurrentIndex%5D;var%20userGuess=prompt(%22Guess%20the%20Premier%20League%20team%20by%20emoji:%20%22+team.emoji+%22%5CnYou%20have%20%22+guesses+%22%20guesses%20left.%22);if(userGuess&&userGuess.toLowerCase()===team.name.toLowerCase())%7Balert(%22Correct!%20The%20team%20is%20%22+team.name);currentIndex++;guesses=3%7Delse%7Bguesses--;if(guesses%3E0)%7Balert(%22Wrong!%20Try%20again.%22)%7Delse%7Balert(%22Out%20of%20guesses!%20The%20team%20is%20%22+team.name);currentIndex++;guesses=3%7D%7DshowNextTeam()%7DshowNextTeam()%7D)();">Guess the english football team by emojis</a>
+    <br>
+<a href=""></a>
+    <br>
+<a href=""></a>
+    <br>
+<a href=""></a>
+    <br>
+<a href=""></a>
+<br>    
+<br>
+<br>
+<h3>To install just drag the links above into your bookmarks</h3>
+
+    
     <h2>More games coming soon</h2>
   </body>
 </html>

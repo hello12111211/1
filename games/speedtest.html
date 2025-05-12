@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Circle Clicker Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      margin: 20px;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 600px;
+      height: 400px;
+      background: #222;
+      border: 2px solid #fff;
+      overflow: hidden;
+    }
+
+    .circle {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: #e74c3c;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    #scoreBoard {
+      margin-top: 15px;
+      font-size: 20px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #00b894;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #019267;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 Circle Clicker Game</h1>
+  <div id="gameArea"></div>
+  <div id="scoreBoard">Score: 0 | Time: 30</div>
+  <button onclick="startGame()">Start Game</button>
+
+  <script>
+    const gameArea = document.getElementById('gameArea');
+    const scoreBoard = document.getElementById('scoreBoard');
+    let score = 0;
+    let time = 30;
+    let gameInterval, timerInterval;
+
+    function startGame() {
+      score = 0;
+      time = 30;
+      scoreBoard.textContent = `Score: ${score} | Time: ${time}`;
+      clearInterval(gameInterval);
+      clearInterval(timerInterval);
+      gameArea.innerHTML = '';
+
+      gameInterval = setInterval(spawnCircle, 600);
+      timerInterval = setInterval(() => {
+        time--;
+        scoreBoard.textContent = `Score: ${score} | Time: ${time}`;
+        if (time === 0) {
+          clearInterval(gameInterval);
+          clearInterval(timerInterval);
+          alert('⏰ Time’s up! Your score: ' + score);
+        }
+      }, 1000);
+    }
+
+    function spawnCircle() {
+      const circle = document.createElement('div');
+      circle.classList.add('circle');
+
+      const size = 30 + Math.random() * 20;
+      circle.style.width = size + 'px';
+      circle.style.height = size + 'px';
+
+      const x = Math.random() * (gameArea.clientWidth - size);
+      const y = Math.random() * (gameArea.clientHeight - size);
+      circle.style.left = x + 'px';
+      circle.style.top = y + 'px';
+
+      circle.onclick = () => {
+        score++;
+        circle.remove();
+        scoreBoard.textContent = `Score: ${score} | Time: ${time}`;
+      };
+
+      gameArea.appendChild(circle);
+
+      setTimeout(() => {
+        if (gameArea.contains(circle)) {
+          circle.remove();
+        }
+      }, 1000); // Remove after 1 second
+    }
+  </script>
+</body>
+</html>

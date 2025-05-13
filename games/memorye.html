@@ -54,7 +54,7 @@
   <div id="game"></div>
 
   <script>
-    const emojis = ['🍕', '🚗', '🎈', '🐱', '🌈', '⚽', '🎮', '🧠'];
+    const emojis = ['🍕', '🚗', '🎈', '🐱', '💀', '⚽', '🎮', '🧠'];
     let cards = [...emojis, ...emojis];
     cards.sort(() => 0.5 - Math.random());
 
@@ -88,7 +88,7 @@
               flipped = [];
 
               if (matched.length === cards.length) {
-                setTimeout(() => alert('🎉 You matched all the cards!'), 300);
+                setTimeout(() => alert('You have won. Refresh to play again.'), 300);
               }
             } else {
               setTimeout(() => {

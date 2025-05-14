@@ -293,11 +293,11 @@ function sendMessage() {
 function decodeStr() {
     return (atob(str));
 }
-const str = "MjEyMQ==";
+const str = "8J+SgA==";
  
 async function clearChat() {
   const pw = await prompt("Admin password to clear?");
-  if (pw === decodeStr()) {
+  if (pw ==`= decodeStr()) {
     db.ref(`messages/${currentGroup}`).remove();
     chatBox.innerHTML = '';
   } else {

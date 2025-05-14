@@ -71,40 +71,7 @@
 
     <!-- Website content (hidden initially) -->
     <div id="websiteContent" class="content">
-        <h1>Welcome to the Website!</h1>
-        <p>This is the protected content. Enjoy!</p>
-    </div>
-
-    <script>
-        // The correct password
-        const correctPassword = "IDK"; // Change to your desired password
-
-        // Function to check the password
-        function checkPassword() {
-            const enteredPassword = document.getElementById("passwordInput").value;
-
-            // Check if the entered password is correct
-            if (enteredPassword === correctPassword) {
-                // If correct, hide the modal and show the content
-                document.getElementById("passwordModal").style.display = "none";
-                document.getElementById("websiteContent").style.display = "block";
-            } else {
-                // If incorrect, alert the user
-                alert("Incorrect password. Please try again.");
-            }
-        }
-    </script>
-
-
-
-      
-
-
-    
-  </head>
-  <body>
-
-    <h1>Select your game</h1>
+      <h1>Select your game</h1>
     <br>
     <h2>Games on websites</h2>
     <a href="https://hello12111211.github.io/1/games/alien.html">Alien blaster</a>
@@ -143,5 +110,36 @@
 <br>
     
     <h2>More games coming soon</h2>
+    </div>
+
+    <script>
+        // The correct password
+        const correctPassword = "IDK"; // Change to your desired password
+
+        // Function to check the password
+        function checkPassword() {
+            const enteredPassword = document.getElementById("passwordInput").value;
+
+            // Check if the entered password is correct
+            if (enteredPassword === correctPassword) {
+                // If correct, hide the modal and show the content
+                document.getElementById("passwordModal").style.display = "none";
+                document.getElementById("websiteContent").style.display = "block";
+            } else {
+                // If incorrect, alert the user
+                alert("Incorrect password. Please try again.");
+            }
+        }
+    </script>
+
+
+
+      
+
+
+    
+  </head>
+  <body>
+
   </body>
 </html>

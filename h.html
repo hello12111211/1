@@ -3,65 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>gs</title>
+    <title>Password Protected Page</title>
     <style>
-        /* The password modal window */
-        .modal {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            width: 300px;
-        }
-
-        .modal-content input {
-            padding: 10px;
-            width: 80%;
-            margin-top: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .modal-content button {
-            padding: 10px 15px;
-            margin-top: 10px;
-            border: none;
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        .modal-content button:hover {
-            background-color: #45a049;
-        }
-
-        /* Hide the content by default */
-        .content {
-            display: none;
-            text-align: center;
+        #protectedContent {
+            display: none; /* Hide protected content initially */
         }
     </style>
 </head>
 <body>
+    <h1>Enter Password</h1>
 
-    <!-- Password Modal -->
-    <div id="passwordModal" class="modal">
-        <div class="modal-content">
-            <h2>Enter Password</h2>
+    <!-- Password form -->
+    <form id="passwordForm">
+        <label for="passwordField">Password:</label>
+        <input type="password" id="passwordField" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    <!-- Protected content (hidden initially) -->
+    <div id="protectedContent">
+        <h2>Enter Password</h2>
             <input type="password" id="passwordInput" placeholder="Password">
             <button onclick="checkPassword()">Submit</button>
         </div>
@@ -69,25 +30,27 @@
 
     <!-- Website content (hidden initially) -->
     <div id="websiteContent" class="content">
-        <h1>Select your game</h1>
-        <br>
-        <h2>Games on websites</h2>
-        <a href="https://hello12111211.github.io/1/games/alien.html">Alien blaster</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/pixelduel.html">Pixel duel</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/memorye.html">Memory match 4X4</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/memoryh.html">Memory match 6X6</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/speedtest.html">Speed Test</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/flappy.html">Flappy bird</a>
-        <br>
-        <a href="https://hello12111211.github.io/1/games/t.html">Tetris</a>
-        <br>
-        <h2>Games for your bookmarks</h2>
-        <a href="javascript:(function()%7B%20%20%20const%20shootOptions%20=%20%5B'left',%20'centre',%20'right'%5D;%20%20%20const%20playerShoot%20=%20()%20=%3E%20prompt('Choose%20where%20to%20shoot:%20left,%20centre,%20right').toLowerCase();%20%20%20const%20goalieSave%20=%20()%20=%3E%20shootOptions%5BMath.floor(Math.random()%20*%20shootOptions.length)%5D;%20%20%20%20%20%20let%20playerScore%20=%200;%20%20%20let%20goalieScore%20=%200;%20%20%20%20for%20(let%20i%20=%200;%20i%20%3C%205;%20i++)%20%7B%20%20%20%20%20const%20playerChoice%20=%20playerShoot();%20%20%20%20%20const%20goalieChoice%20=%20goalieSave();%20%20%20%20%20%20%20%20%20%20if%20(shootOptions.includes(playerChoice))%20%7B%20%20%20%20%20%20%20if%20(playerChoice%20!==%20goalieChoice)%20%7B%20%20%20%20%20%20%20%20%20playerScore++;%20%20%20%20%20%20%20%20%20alert(%60You%20scored!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20%20%20goalieScore++;%20%20%20%20%20%20%20%20%20alert(%60Saved!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20alert('Invalid%20choice,%20you%20missed!');%20%20%20%20%20%7D%20%20%20%7D%20%20%20%20alert(%60Game%20Over!%5CnPlayer%20Score:%20$%7BplayerScore%7D%5CnGoalie%20Score:%20$%7BgoalieScore%7D%60);%20%7D)();">Football penaltys</a>
+      <h1>Select your game</h1>
+    <br>
+    <h2>Games on websites</h2>
+    <a href="https://hello12111211.github.io/1/games/alien.html">Alien blaster</a>
+    <br>
+    <a href="https://hello12111211.github.io/1/games/pixelduel.html">Pixel duel</a>
+    <br>
+      <a href="https://hello12111211.github.io/1/games/memorye.html">Memory match 4X4</a>
+    <br>
+      <a href="https://hello12111211.github.io/1/games/memoryh.html">Memory match 6X6</a>
+    <br>
+    <a href="https://hello12111211.github.io/1/games/speedtest.html">Speed Test</a>
+    <br>
+    <a href="https://hello12111211.github.io/1/games/flappy.html">Flappy bird</a>
+    <br>
+     <a href="https://hello12111211.github.io/1/games/t.html">Tetris</a>
+    <br>
+    <h2>Games for your bookmarks</h2>
+    <p>designed for ipad</p>
+    
+<a href="javascript:(function()%7B%20%20%20const%20shootOptions%20=%20%5B'left',%20'centre',%20'right'%5D;%20%20%20const%20playerShoot%20=%20()%20=%3E%20prompt('Choose%20where%20to%20shoot:%20left,%20centre,%20right').toLowerCase();%20%20%20const%20goalieSave%20=%20()%20=%3E%20shootOptions%5BMath.floor(Math.random()%20*%20shootOptions.length)%5D;%20%20%20%20%20%20let%20playerScore%20=%200;%20%20%20let%20goalieScore%20=%200;%20%20%20%20for%20(let%20i%20=%200;%20i%20%3C%205;%20i++)%20%7B%20%20%20%20%20const%20playerChoice%20=%20playerShoot();%20%20%20%20%20const%20goalieChoice%20=%20goalieSave();%20%20%20%20%20%20%20%20%20%20if%20(shootOptions.includes(playerChoice))%20%7B%20%20%20%20%20%20%20if%20(playerChoice%20!==%20goalieChoice)%20%7B%20%20%20%20%20%20%20%20%20playerScore++;%20%20%20%20%20%20%20%20%20alert(%60You%20scored!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20%20%20goalieScore++;%20%20%20%20%20%20%20%20%20alert(%60Saved!%20Goalie%20dived%20$%7BgoalieChoice%7D.%60);%20%20%20%20%20%20%20%7D%20%20%20%20%20%7D%20else%20%7B%20%20%20%20%20%20%20alert('Invalid%20choice,%20you%20missed!');%20%20%20%20%20%7D%20%20%20%7D%20%20%20%20alert(%60Game%20Over!%5CnPlayer%20Score:%20$%7BplayerScore%7D%5CnGoalie%20Score:%20$%7BgoalieScore%7D%60);%20%7D)();">Football penaltys</a>
     <br>
 <a href="javascript:(function()%7Bconst%20cities=%5B%22London%22,%22Manchester%22,%22Birmingham%22,%22Leeds%22,%22Liverpool%22,%22Bristol%22,%22Sheffield%22,%22Newcastle%22,%22Nottingham%22,%22Leicester%22,%22Coventry%22,%22Sunderland%22,%22Southampton%22,%22Wolverhampton%22,%22Plymouth%22,%22Derby%22,%22Stoke-on-Trent%22,%22Reading%22,%22Luton%22,%22Swindon%22%5D;let%20selectedCity,jumbledCity,remainingLives;function%20jumbleCity(city)%7Bconst%20cityArr=city.split('');for(let%20i=cityArr.length*2-1;i%3E0;i--)%7Bconst%20j=Math.floor(Math.random()*(i+1));%5BcityArr%5Bi%25cityArr.length%5D,cityArr%5Bj%25cityArr.length%5D%5D=%5BcityArr%5Bj%25cityArr.length%5D,cityArr%5Bi%25cityArr.length%5D%5D%7Dreturn%20cityArr.join('')%7Dfunction%20startGame()%7BremainingLives=3;selectedCity=cities%5BMath.floor(Math.random()*cities.length)%5D;jumbledCity=jumbleCity(selectedCity);alert(%22Jumbled%20City:%20%22+jumbledCity);promptGuess()%7Dfunction%20promptGuess()%7Bconst%20userGuess=prompt(%22Jumbled%20City:%20%22+jumbledCity+%22%5CnEnter%20your%20guess%20(Lives%20remaining:%20%22+remainingLives+%22):%22);if(userGuess===null)return;checkGuess(userGuess)%7Dfunction%20checkGuess(userGuess)%7Bif(userGuess.toLowerCase()===selectedCity.toLowerCase())%7Balert(%22Congratulations!%20You%20guessed%20it%20right!%22);startGame()%7Delse%7BremainingLives--;if(remainingLives%3E0)%7Balert(%22Wrong%20guess!%20Try%20again.%22);promptGuess()%7Delse%7Balert(%22Game%20Over!%20The%20correct%20city%20was%20%22+selectedCity+%22.%20Starting%20a%20new%20game...%22);startGame()%7D%7D%7DstartGame()%7D)();">Scrambled up English citys</a>
     <br>
@@ -106,27 +69,31 @@
 <br>
     
     <h2>More games coming soon</h2>
-
-        <p>designed for ipad</p>
     </div>
 
     <script>
-        // Base64 encoded password
-        const correctPasswordBase64 = "==SURL";  // base64 of "IDK"
+        // Base64 encoded version of "IDK"
+        const encodedPassword = "SURL"; // Base64 of "IDK"
+        
+        // Listen for form submission
+        document.getElementById("passwordForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent form from submitting to reload the page
 
-        function checkPassword() {
-            const passwordInput = document.getElementById('passwordInput').value;
-            const passwordBase64 = btoa(passwordInput);  // Encode input in base64
+            const enteredPassword = document.getElementById("passwordField").value; // Get the password entered by the user
 
-            if (passwordBase64 === correctPasswordBase64) {
-                // If the password matches the encoded one, show the content
-                document.getElementById('passwordModal').style.display = 'none';
-                document.getElementById('websiteContent').style.display = 'block';
+            // Decode the Base64 encoded password
+            const decodedPassword = atob(encodedPassword); // Decodes the Base64 string "SUQ9" to "IDK"
+
+            // Check if the entered password matches the decoded password
+            if (enteredPassword === decodedPassword) {
+                // If correct, show the protected content
+                document.getElementById("protectedContent").style.display = "block";
+                alert("Password is correct! Welcome!");
             } else {
-                alert('Incorrect password. Please try again.');
+                // If incorrect, alert the user
+                alert("Incorrect password! Please try again.");
             }
-        }
+        });
     </script>
-
 </body>
 </html>

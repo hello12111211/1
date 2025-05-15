@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Mini Golf Cup - Par & Editor</title>
+  <title>Mini Golf Cup</title>
   <style>
     canvas {
       background: #5bc85b;
@@ -15,9 +15,6 @@
       text-align: center;
       font-family: sans-serif;
     }
-    #ui {
-      margin-top: 10px;
-    }
   </style>
 </head>
 <body>
@@ -25,7 +22,6 @@
   <p>Drag the ball to shoot (supports mouse & touch). Press <strong>E</strong> to toggle level editor.</p>
   <div id="ui">
     <div id="levelText">Level: 1</div>
-    <div id="parText">Par: 3 | Strokes: 0</div>
     <div id="editMode" style="color:red;"></div>
   </div>
   <canvas id="gameCanvas" width="600" height="400"></canvas>
@@ -38,16 +34,12 @@
     const hole = { x: 500, y: 200, radius: 15 };
     const friction = 0.98;
     const levelText = document.getElementById("levelText");
-    const parText = document.getElementById("parText");
     const editModeText = document.getElementById("editMode");
 
     let dragging = false;
     let dragStart = null;
-    let strokes = 0;
     let currentLevel = 1;
     let editing = false;
-
-    const levelPars = [2, 2, 3, 3, 3, 3, 4, 4, 4, 4];
 
     const levels = [
       [], // Level 1
@@ -57,7 +49,7 @@
       [{x: 250, y: 0, w: 20, h: 300}],
       [{x: 200, y: 200, w: 150, h: 20}, {x: 400, y: 100, w: 20, h: 200}],
       [{x: 150, y: 150, w: 300, h: 20}],
-      [{x: 250, y: 0, w: 20, h: 400}],
+      [{x: 250, y: 0, w: 20, h: 300}], // fixed from 400 to 300 so there's a path
       [{x: 100, y: 300, w: 400, h: 20}, {x: 300, y: 100, w: 20, h: 200}],
       [{x: 200, y: 100, w: 20, h: 200}, {x: 400, y: 100, w: 20, h: 200}, {x: 300, y: 0, w: 20, h: 150}]
     ];
@@ -102,7 +94,6 @@
           ball.y + ball.radius > obs.y &&
           ball.y - ball.radius < obs.y + obs.h
         ) {
-          // Simple bounce
           if (ball.x < obs.x || ball.x > obs.x + obs.w) ball.dx *= -0.5;
           if (ball.y < obs.y || ball.y > obs.y + obs.h) ball.dy *= -0.5;
         }
@@ -151,7 +142,7 @@
       const dist = Math.hypot(ball.x - hole.x, ball.y - hole.y);
       if (dist < hole.radius) {
         setTimeout(() => {
-          alert(`🎉 Level ${currentLevel} Complete!\nStrokes: ${strokes} | Par: ${levelPars[currentLevel - 1]}`);
+          alert(`🎉 Level ${currentLevel} Complete!`);
           nextLevel();
         }, 100);
       }
@@ -173,7 +164,6 @@
       ball.y = 200;
       ball.dx = 0;
       ball.dy = 0;
-      strokes = 0;
       hole.x = 500;
       hole.y = 200;
       updateUI();
@@ -181,7 +171,6 @@
 
     function updateUI() {
       levelText.textContent = "Level: " + currentLevel;
-      parText.textContent = `Par: ${levelPars[currentLevel - 1]} | Strokes: ${strokes}`;
       editModeText.textContent = editing ? "🛠 EDIT MODE ON" : "";
     }
 
@@ -203,7 +192,6 @@
       const pos = getPos(e);
       const distance = Math.hypot(pos.x - ball.x, pos.y - ball.y);
       if (editing) {
-        // Add obstacle
         levels[currentLevel - 1].push({x: pos.x - 10, y: pos.y - 10, w: 40, h: 40});
         return;
       }
@@ -221,14 +209,11 @@
       if (dragging && dragStart) {
         ball.dx = (ball.x - dragStart.x) * 0.1;
         ball.dy = (ball.y - dragStart.y) * 0.1;
-        strokes++;
-        updateUI();
       }
       dragging = false;
       dragStart = null;
     }
 
-    // Input events
     canvas.addEventListener("mousedown", startDrag);
     canvas.addEventListener("mousemove", moveDrag);
     canvas.addEventListener("mouseup", endDrag);
@@ -236,7 +221,6 @@
     canvas.addEventListener("touchmove", moveDrag);
     canvas.addEventListener("touchend", endDrag);
 
-    // Keyboard
     document.addEventListener("keydown", (e) => {
       if (e.key === "e" || e.key === "E") {
         editing = !editing;

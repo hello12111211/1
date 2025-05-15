@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hangman Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 50px;
+    }
+    h1 {
+      color: #333;
+    }
+    #word {
+      font-size: 2em;
+      letter-spacing: 10px;
+      margin: 20px 0;
+    }
+    #letters button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+    #hangman {
+      font-size: 1.5em;
+      white-space: pre;
+      margin: 20px auto;
+    }
+    #reset {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hangman Game</h1>
+  <div id="hangman"></div>
+  <div id="word"></div>
+  <div id="letters"></div>
+  <div id="status"></div>
+  <button id="reset" onclick="startGame()">Restart Game</button>
+
+  <script>
+    const words = ["javascript", "hangman", "developer", "openai", "browser"];
+    const maxWrong = 6;
+    let selectedWord = "";
+    let guessedLetters = [];
+    let wrongGuesses = 0;
+
+    function startGame() {
+      selectedWord = words[Math.floor(Math.random() * words.length)];
+      guessedLetters = [];
+      wrongGuesses = 0;
+      document.getElementById("status").textContent = "";
+      drawHangman();
+      displayWord();
+      displayLetters();
+    }
+
+    function displayWord() {
+      const wordDisplay = selectedWord.split("").map(letter =>
+        guessedLetters.includes(letter) ? letter : "_"
+      ).join(" ");
+      document.getElementById("word").textContent = wordDisplay;
+
+      if (!wordDisplay.includes("_")) {
+        document.getElementById("status").textContent = "🎉 You Win!";
+        disableAllButtons();
+      }
+    }
+
+    function displayLetters() {
+      const lettersDiv = document.getElementById("letters");
+      lettersDiv.innerHTML = "";
+      for (let i = 65; i <= 90; i++) {
+        const letter = String.fromCharCode(i).toLowerCase();
+        const button = document.createElement("button");
+        button.textContent = letter;
+        button.disabled = guessedLetters.includes(letter);
+        button.onclick = () => guess(letter);
+        lettersDiv.appendChild(button);
+      }
+    }
+
+    function guess(letter) {
+      if (guessedLetters.includes(letter)) return;
+      guessedLetters.push(letter);
+
+      if (!selectedWord.includes(letter)) {
+        wrongGuesses++;
+        drawHangman();
+        if (wrongGuesses === maxWrong) {
+          document.getElementById("status").textContent = `💀 You Lose! Word was "${selectedWord}".`;
+          disableAllButtons();
+        }
+      }
+      displayWord();
+      displayLetters();
+    }
+
+    function disableAllButtons() {
+      document.querySelectorAll("#letters button").forEach(btn => btn.disabled = true);
+    }
+
+    function drawHangman() {
+      const hangmanStages = [
+        `
+         +---+
+         |   |
+             |
+             |
+             |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+             |
+             |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+         |   |
+             |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+        /|   |
+             |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+        /|\\  |
+             |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+        /|\\  |
+        /    |
+             |
+        =========`,
+        `
+         +---+
+         |   |
+         O   |
+        /|\\  |
+        / \\  |
+             |
+        =========`
+      ];
+      document.getElementById("hangman").textContent = hangmanStages[wrongGuesses];
+    }
+
+    // Start the game on load
+    startGame();
+  </script>
+</body>
+</html>

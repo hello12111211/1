@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini Golf Cup Game</title>
+  <style>
+    canvas {
+      background: #5bc85b;
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+    body {
+      text-align: center;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mini Golf Cup Game</h1>
+  <p>Click and drag to aim and shoot!</p>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const ball = {
+      x: 100,
+      y: 200,
+      radius: 10,
+      color: "white",
+      dx: 0,
+      dy: 0
+    };
+
+    const hole = {
+      x: 500,
+      y: 200,
+      radius: 15,
+      color: "black"
+    };
+
+    const friction = 0.98;
+    let dragging = false;
+    let dragStart = null;
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = ball.color;
+      ctx.fill();
+    }
+
+    function drawHole() {
+      ctx.beginPath();
+      ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2);
+      ctx.fillStyle = hole.color;
+      ctx.fill();
+    }
+
+    function drawArrow(start, end) {
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHole();
+      drawBall();
+
+      // Dragging arrow
+      if (dragging && dragStart) {
+        drawArrow({x: ball.x, y: ball.y}, dragStart);
+      }
+
+      // Move ball
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Apply friction
+      ball.dx *= friction;
+      ball.dy *= friction;
+
+      // Stop when speed is very low
+      if (Math.abs(ball.dx) < 0.05) ball.dx = 0;
+      if (Math.abs(ball.dy) < 0.05) ball.dy = 0;
+
+      // Check if ball in hole
+      const dist = Math.hypot(ball.x - hole.x, ball.y - hole.y);
+      if (dist < hole.radius) {
+        alert("🎉 You scored!");
+        resetGame();
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    function resetGame() {
+      ball.x = 100;
+      ball.y = 200;
+      ball.dx = 0;
+      ball.dy = 0;
+    }
+
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const distance = Math.hypot(mouseX - ball.x, mouseY - ball.y);
+      if (distance <= ball.radius + 5) {
+        dragging = true;
+        dragStart = { x: mouseX, y: mouseY };
+      }
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (dragging) {
+        const rect = canvas.getBoundingClientRect();
+        dragStart = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      if (dragging && dragStart) {
+        // Calculate force
+        ball.dx = (ball.x - dragStart.x) * 0.1;
+        ball.dy = (ball.y - dragStart.y) * 0.1;
+      }
+      dragging = false;
+      dragStart = null;
+    });
+
+    update();
+  </script>
+</body>
+</html>

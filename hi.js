@@ -71,6 +71,124 @@
 
     <!-- Website content (hidden initially) -->
     <div id="websiteContent" class="content">
+       <h1>Live Chat 💬</h1>
+
+  <div id="messages" class="messages-container"></div>
+
+  <div>
+    <input id="msgInput" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <!-- Admin controls (password input) -->
+  <div class="button-container">
+    <button onclick="toggleAdminPasswordInput()">Admin Controls</button>
+  </div>
+  <div id="password-container" class="password-container">
+    <input type="password" id="passwordInput" placeholder="Enter Admin Password" />
+    <button onclick="verifyAdminPassword()">Submit</button>
+  </div>
+
+  <div>
+    <button onclick="clearChat()" style="display:none;" id="clearChatButton">Clear Chat</button>
+    <button onclick="changeUsername()" style="display:none;" id="changeUsernameButton">Change Username</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
+      authDomain: "project-7865777163369990472.firebaseapp.com",
+      databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
+      projectId: "project-7865777163369990472",
+      storageBucket: "project-7865777163369990472.firebasestorage.app",
+      messagingSenderId: "312681869598",
+      appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
+      measurementId: "G-QPD0FBW5KW"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let userId = null;
+    let username = "User";
+    const adminUID = "EzBYJVLOBJXpEfitCitFpssDMn13";
+    const adminPassword = "GOON"; // Set your admin password here
+
+    firebase.auth().signInAnonymously().then(user => {
+      userId = user.user.uid;
+    });
+
+    function sendMessage() {
+      const text = document.getElementById('msgInput').value;
+      if (!text) return;
+      db.ref('messages').push({ text, uid: userId, username, reactions: {}, timestamp: Date.now() });
+      document.getElementById('msgInput').value = '';
+    }
+
+    db.ref('messages').on('value', snapshot => {
+      const messages = snapshot.val();
+      const msgDiv = document.getElementById('messages');
+      msgDiv.innerHTML = '';
+      for (let id in messages) {
+        const msg = messages[id];
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.innerHTML = `<b>${msg.username}</b>: ${msg.text}`;
+
+        const emojiList = ['👍', '😂', '❤️'];
+        emojiList.forEach(emoji => {
+          const span = document.createElement('span');
+          span.className = 'reaction';
+          span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
+          span.onclick = () => addReaction(id, emoji);
+          div.appendChild(span);
+        });
+
+        if (userId === adminUID) {
+          const del = document.createElement('span');
+          del.className = 'admin-btn';
+          del.innerText = '🗑️';
+          del.onclick = () => db.ref('messages/' + id).remove();
+          div.appendChild(del);
+        }
+
+        msgDiv.appendChild(div);
+      }
+    });
+
+    function addReaction(msgId, emoji) {
+      const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
+      ref.transaction(curr => (curr || 0) + 1);
+    }
+
+    function toggleAdminPasswordInput() {
+      const passwordContainer = document.getElementById('password-container');
+      passwordContainer.style.display = passwordContainer.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function verifyAdminPassword() {
+      const password = document.getElementById('passwordInput').value;
+      if (password === adminPassword) {
+        document.getElementById('clearChatButton').style.display = 'inline-block';
+        document.getElementById('changeUsernameButton').style.display = 'inline-block';
+      } else {
+        alert('Incorrect password!');
+      }
+      document.getElementById('password-container').style.display = 'none';
+    }
+
+    function changeUsername() {
+      const newUsername = prompt('Enter new username:');
+      if (newUsername) {
+        username = newUsername;
+      }
+    }
+
+    function clearChat() {
+      if (confirm('Are you sure you want to clear the chat?')) {
+        db.ref('messages').remove();
+      }
+    }
+  </script>
 
     </div>
 

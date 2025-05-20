@@ -124,7 +124,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let userId = null;
-    let username = "User";
+    let username = "Test Subject";
     const adminUID = "EzBYJVLOBJXpEfitCitFpssDMn13";
     const adminPassword = "GOON"; // Set your admin password here
 
@@ -158,7 +158,7 @@
           div.appendChild(span);
         });
 
-        if (userId === adminUID) {
+        if (adminPassword === GOON) {
           const del = document.createElement('span');
           del.className = 'admin-btn';
           del.innerText = '🗑️';

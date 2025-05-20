@@ -118,7 +118,6 @@
     <h2>More games coming soon</h2>
     </div>
 
-
     <script>
         // The correct password
         const correctPassword = "..."; // Change to your desired password
@@ -136,26 +135,38 @@
                 // If incorrect, alert the user
                 alert("Why you trying to play games in lesson");
                alert("Btw the password is ...");
+              
+         
 
-          
-
-                   
+            }
         }
 
-           const correctPassword = "SECRET";
-           const correctPassword = "...";
 
-                if (enteredPassword === SECRET) {
-                  let text = "Chat";
-let result = text.link("https://www.w3schools.com");
-        
+      
+// The correct password
+        const secretPassword = "..."; // Change to your desired password
 
+        // Function to check the password
+        function checkPassword() {
+            const enteredPassword = document.getElementById("passwordInput").value;
+
+            // Check if the entered password is correct
+            if (enteredPassword === secretPassword) {
+                // If correct, hide the modal and show the content
+                document.getElementById("passwordModal").style.display = "none";
+                document.getElementById("chat").style.display = "block";
             } else {
                 // If incorrect, alert the user
-               alert("no");
+                alert("Why you trying to play games in lesson");
+               alert("Btw the password is ...");
+              
+         
 
-                   
+            }
         }
+
+
+
     </script>
 
 

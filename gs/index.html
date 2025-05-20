@@ -136,12 +136,19 @@
                 alert("Why you trying to play games in lesson");
                alert("Btw the password is ...");
 
-                    if (enteredPassword === SECRET) {
-                      let text = "chat";
-                      let result = text.link("https://hello12111211.github.io/1/idk/t.html");
-         
+                   
+        }
 
-            }
+                if (enteredPassword === SECRET) {
+                // If correct, hide the modal and show the content
+                document.getElementById("passwordModal").style.display = "none";
+                document.getElementById("websiteContent").style.display = "block";
+            } else {
+                // If incorrect, alert the user
+                alert("Why you trying to play games in lesson");
+               alert("Btw the password is ...");
+
+                   
         }
     </script>
 

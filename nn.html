@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Notification Demo</title>
+</head>
+<body>
+  <button onclick="sendNotification()">Notify Me</button>
+
+  <script>
+    // Request permission on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission();
+      }
+    });
+
+    function sendNotification() {
+      if (Notification.permission === 'granted') {
+        new Notification('Hello!', {
+          body: 'This is a test notification from your website.',
+          icon: 'https://example.com/icon.png' // optional
+        });
+      } else {
+        alert('Please enable notifications.');
+      }
+    }
+  </script>
+</body>
+</html>

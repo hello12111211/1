@@ -2,6 +2,9 @@
 <html>
 <head>
   <title>Notification Demo</title>
+  <link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#007AFF" />
+
 </head>
 <body>
   <button onclick="sendNotification()">Notify Me</button>
@@ -25,5 +28,13 @@
       }
     }
   </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('Service Worker registered:', reg))
+      .catch(err => console.error('Service Worker registration failed:', err));
+  }
+</script>
+
 </body>
 </html>

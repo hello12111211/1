@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Head Football Touch</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #1e90ff; }
+    canvas { display: block; }
+    .controls {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      z-index: 10;
+    }
+    .btn {
+      background: rgba(255,255,255,0.5);
+      border: 2px solid white;
+      border-radius: 10px;
+      padding: 20px;
+      font-size: 24px;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <script>
+    let player, ball, goalLeft, goalRight;
+    let moveLeft = false, moveRight = false, jump = false;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      player = createVector(width / 4, height - 60);
+      ball = createVector(width / 2, height / 2);
+      ball.vel = createVector(0, 0);
+    }
+
+    function draw() {
+      background('#1e90ff');
+
+      // Ground
+      fill('#228B22');
+      rect(0, height - 40, width, 40);
+
+      // Player
+      fill('red');
+      ellipse(player.x, player.y, 60);
+
+      // Ball
+      fill('white');
+      ellipse(ball.x, ball.y, 40);
+
+      // Ball physics
+      ball.vel.y += 0.5; // gravity
+      ball.add(ball.vel);
+      if (ball.y + 20 > height - 40) {
+        ball.y = height - 40 - 20;
+        ball.vel.y *= -0.6;
+      }
+      if (ball.x - 20 < 0 || ball.x + 20 > width) ball.vel.x *= -1;
+
+      // Player movement
+      if (moveLeft) player.x -= 5;
+      if (moveRight) player.x += 5;
+      if (jump && player.y >= height - 60) player.y -= 12;
+      player.y += 3;
+      if (player.y > height - 60) player.y = height - 60;
+
+      // Ball collision
+      let d = dist(ball.x, ball.y, player.x, player.y);
+      if (d < 50) {
+        let angle = atan2(ball.y - player.y, ball.x - player.x);
+        ball.vel.x += cos(angle) * 5;
+        ball.vel.y += sin(angle) * 5;
+      }
+    }
+
+    function createButtonControls() {
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+
+      controls.innerHTML = `
+        <div class="btn" ontouchstart="moveLeft=true" ontouchend="moveLeft=false">←</div>
+        <div class="btn" ontouchstart="jump=true" ontouchend="jump=false">⬆</div>
+        <div class="btn" ontouchstart="moveRight=true" ontouchend="moveRight=false">→</div>
+      `;
+      document.body.appendChild(controls);
+    }
+
+    window.onload = createButtonControls;
+  </script>
+</body>
+</html>

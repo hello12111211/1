@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Heads or Tails Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom right, #4facfe, #00f2fe);
+      color: white;
+      margin: 0;
+      padding: 20px;
+      position: relative;
+      min-height: 100vh;
+      user-select: none;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    .coin-container {
+      perspective: 1000px;
+      width: 150px;
+      height: 150px;
+      margin: 40px auto;
+    }
+    .coin {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1s;
+    }
+    .heads, .tails {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      line-height: 150px;
+      font-size: 2rem;
+      font-weight: bold;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .heads {
+      background: gold;
+      color: black;
+    }
+    .tails {
+      background: silver;
+      color: black;
+      transform: rotateY(180deg);
+    }
+    .buttons {
+      margin: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    button {
+      background: white;
+      color: #0077b6;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    button:hover:enabled {
+      transform: scale(1.05);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .cooldown-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: #00b4d8;
+      animation: cooldown 1s linear forwards;
+    }
+    @keyframes cooldown {
+      from { width: 100%; }
+      to   { width: 0%; }
+    }
+    .result {
+      font-size: 1.3rem;
+      margin-top: 15px;
+    }
+    .streak {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .admin-panel {
+      margin-top: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 350px;
+      margin-left: auto;
+      margin-right: auto;
+      color: black;
+      position: relative;
+      user-select: text;
+      display: none; /* Hidden by default */
+    }
+    input[type="password"], input[type="number"] {
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+      font-size: 1rem;
+      margin: 5px 0 10px 0;
+      width: 90%;
+      box-sizing: border-box;
+    }
+    .hack-section {
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 15px;
+      border-radius: 10px;
+      color: black;
+      display: none; /* Hidden until login */
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-size: 1rem;
+      color: black;
+      cursor: pointer;
+    }
+    #adminCloseBtn {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: #ff4d4d;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px 10px;
+      user-select: none;
+      transition: background 0.3s;
+    }
+    #adminCloseBtn:hover {
+      background: #cc0000;
+    }
+    /* Invisible hotspot in top-left corner */
+    #hotspot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 20px;
+      height: 20px;
+      z-index: 9999;
+      cursor: pointer;
+      /* No background, completely invisible */
+    }
+  </style>
+</head>
+<body>
+  <!-- Invisible hotspot -->
+  <div id="hotspot" title="(hidden admin access)"></div>
+
+  <h1>Heads or Tails?</h1>
+  <div class="coin-container">
+    <div class="coin" id="coin">
+      <div class="heads">HEADS</div>
+      <div class="tails">TAILS</div>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button id="headsBtn" onclick="makeGuess('heads')">Heads</button>
+    <button id="tailsBtn" onclick="makeGuess('tails')">Tails</button>
+  </div>
+
+  <div class="result" id="result"></div>
+  <div class="streak">Streak: <span id="streak">0</span></div>
+
+  <div class="admin-panel" id="adminPanel">
+    <button id="adminCloseBtn" onclick="toggleAdminPanel(false)">Close</button>
+    <h3>Admin Login</h3>
+    <input type="password" id="adminPassword" placeholder="Enter password" />
+    <button id="loginBtn" onclick="checkAdmin()">Login</button>
+    <div id="hacks" class="hack-section">
+      <h3>Hacks Panel</h3>
+      <button id="forceHeadsBtn" onclick="forceOutcome('heads')" disabled>Force Heads</button>
+      <button id="forceTailsBtn" onclick="forceOutcome('tails')" disabled>Force Tails</button><br><br>
+      Set Streak:
+      <input type="number" id="streakInput" value="0" disabled />
+      <button id="setStreakBtn" onclick="setStreak()" disabled>Apply</button>
+      <label>
+        <input type="checkbox" id="autoWinToggle" disabled> Auto-guess correct answer
+      </label>
+    </div>
+  </div>
+
+  <script>
+    const coin = document.getElementById("coin");
+    const result = document.getElementById("result");
+    const streakDisplay = document.getElementById("streak");
+    const headsBtn = document.getElementById("headsBtn");
+    const tailsBtn = document.getElementById("tailsBtn");
+    const autoWinToggle = document.getElementById("autoWinToggle");
+
+    const hotspot = document.getElementById("hotspot");
+    const adminPanel = document.getElementById("adminPanel");
+    const hacksPanel = document.getElementById("hacks");
+
+    // Hack controls
+    const forceHeadsBtn = document.getElementById("forceHeadsBtn");
+    const forceTailsBtn = document.getElementById("forceTailsBtn");
+    const streakInput = document.getElementById("streakInput");
+    const setStreakBtn = document.getElementById("setStreakBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const adminPasswordInput = document.getElementById("adminPassword");
+
+    let streak = 0;
+    let flipping = false;
+    let currentRotation = 0;
+    let forcedOutcome = null;
+    let adminLoggedIn = false;
+
+    // Toggle admin panel visibility
+    function toggleAdminPanel(show) {
+      adminPanel.style.display = show ? "block" : "none";
+      if (show && !adminLoggedIn) {
+        // Focus password input when showing login
+        adminPasswordInput.focus();
+      }
+    }
+
+    // Click hotspot to toggle admin panel visibility
+    hotspot.addEventListener("click", () => {
+      if (adminPanel.style.display === "block") {
+        toggleAdminPanel(false);
+      } else {
+        toggleAdminPanel(true);
+      }
+    });
+
+    function makeGuess(userGuess) {
+      if (flipping) return;
+      flipping = true;
+
+      let outcome;
+      if (forcedOutcome) {
+        outcome = forcedOutcome;
+        forcedOutcome = null;
+      } else {
+        const randomValue = Math.floor(Math.random() * 2);
+        outcome = randomValue === 0 ? "heads" : "tails";
+      }
+
+      const fullSpins = Math.floor(Math.random() * 3 + 2) * 360;
+      const offset = outcome === "heads" ? 0 : 180;
+      currentRotation += fullSpins + offset;
+      coin.style.transform = `rotateY(${currentRotation}deg)`;
+
+      disableButtonsWithCooldown();
+
+      setTimeout(() => {
+        // Auto-cheat: force the guess to match the result if enabled
+        if (adminLoggedIn && autoWinToggle.checked) {
+          userGuess = outcome;
+        }
+
+        if (userGuess === outcome) {
+          streak++;
+          result.textContent = `✅ Correct! It was ${outcome.toUpperCase()}.`;
+        } else {
+          streak = 0;
+          result.textContent = `❌ Wrong! It was ${outcome.toUpperCase()}.`;
+        }
+
+        streakDisplay.textContent = streak;
+        flipping = false;
+      }, 1000);
+    }
+
+    function disableButtonsWithCooldown() {
+      [headsBtn, tailsBtn].forEach(btn => {
+        btn.disabled = true;
+        const bar = document.createElement("div");
+        bar.className = "cooldown-bar";
+        btn.appendChild(bar);
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.removeChild(bar);
+        }, 1000);
+      });
+    }
+
+    function checkAdmin() {
+      const input = adminPasswordInput.value;
+      if (input === "admin123") {
+        adminLoggedIn = true;
+        hacksPanel.style.display = "block";
+        // Enable hack controls
+        forceHeadsBtn.disabled = false;
+        forceTailsBtn.disabled = false;
+        streakInput.disabled = false;
+        setStreakBtn.disabled = false;
+        autoWinToggle.disabled = false;
+
+        alert("✅ Admin access granted!");
+        toggleAdminPanel(true);
+      } else {
+        alert("❌ Wrong password!");
+      }
+      // Clear password input
+      adminPasswordInput.value = "";
+    }
+
+    function forceOutcome(side) {
+      if (!adminLoggedIn) {
+        alert("Access denied. Please login as admin.");
+        return;
+      }
+      forcedOutcome = side;
+      alert(`Next flip will be forced to ${side.toUpperCase()}`);
+    }
+
+    function setStreak() {
+      if (!adminLoggedIn) {
+        alert("Access denied. Please login as admin.");
+        return;
+      }
+      const val = parseInt(streakInput.value);
+      if (!isNaN(val) && val >= 0) {
+        streak = val;
+        streakDisplay.textContent = streak;
+        alert(`Streak set to ${streak}`);
+      } else {
+        alert("Invalid streak value");
+      }
+    }
+  </script>
+</body>
+</html>

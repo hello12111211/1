@@ -304,7 +304,7 @@
 
     function checkAdmin() {
       const input = adminPasswordInput.value;
-      if (input === "GOON") {
+      if (input === "admin123") {
         adminLoggedIn = true;
         hacksPanel.style.display = "block";
         // Enable hack controls
@@ -317,7 +317,7 @@
         alert("✅ Admin access granted!");
         toggleAdminPanel(true);
       } else {
-        alert("Howd you find this. If only you knew the password.GOON on big boys);
+        alert("❌ Wrong password!");
       }
       // Clear password input
       adminPasswordInput.value = "";

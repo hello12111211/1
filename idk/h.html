@@ -20,6 +20,10 @@
             min-height: 100vh;
             padding: 20px;
             box-sizing: border-box;
+            /* Added for password protection overlay */
+            position: relative; /* Ensure body can be a positioning context */
+            /* Enhanced background for the entire page */
+            background: linear-gradient(to bottom right, #e0f2fe, #bfdbfe, #93c5fd); /* Soft blue gradient */
         }
 
         /* Container for chat and controls */
@@ -131,7 +135,7 @@
             outline: none;
         }
 
-        /* Modal styling */
+        /* Modal styling (for your existing modal) */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -201,43 +205,157 @@
                 margin: 0;
             }
         }
+
+        /* NEW & IMPROVED Styles for the password access overlay */
+        .password-access-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(to top left, rgba(60, 130, 246, 0.9), rgba(29, 78, 216, 0.9)); /* Blue gradient overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+            backdrop-filter: blur(5px); /* Subtle blur for depth */
+        }
+        .password-access-card {
+            background-color: #ffffff;
+            padding: 2.5rem; /* Increased padding */
+            border-radius: 1.5rem; /* More rounded */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); /* Stronger, softer shadow */
+            max-width: 32rem; /* Slightly wider */
+            width: 90%;
+            text-align: center;
+            animation: fadeInScale 0.6s ease-out forwards; /* Smoother animation */
+            border: 1px solid #e2e8f0; /* Subtle border */
+        }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .password-access-card h2 {
+            font-size: 2.25rem; /* Larger title */
+            font-weight: 800; /* Extra bold */
+            color: #1a202c; /* Darker text */
+            margin-bottom: 1.5rem;
+        }
+        .password-access-card p {
+            font-size: 1.125rem; /* Slightly larger message text */
+            color: #4a5568; /* Slightly darker grey */
+            margin-bottom: 1.5rem;
+        }
+        .password-access-input {
+            width: 100%;
+            padding: 1rem 1.25rem; /* More vertical and horizontal padding */
+            margin-bottom: 1.25rem; /* Increased margin-bottom */
+            border: 2px solid #cbd5e0; /* Thicker, softer border */
+            border-radius: 0.75rem; /* More rounded */
+            font-size: 1.125rem;
+            color: #2d3748; /* Darker input text */
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .password-access-input:focus {
+            border-color: #4299e1; /* Brighter blue on focus */
+            box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.3); /* Clearer focus ring */
+        }
+        .password-access-button {
+            width: 100%;
+            background-color: #3b82f6; /* Consistent blue */
+            color: white;
+            font-weight: 700; /* Bold */
+            padding: 1rem 1.5rem; /* More padding */
+            border-radius: 0.75rem; /* More rounded */
+            transition: background-color 0.3s ease-in-out, transform 0.15s ease-in-out, box-shadow 0.3s ease-in-out;
+            font-size: 1.25rem; /* Larger text */
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3); /* Subtle blue shadow */
+            letter-spacing: 0.025em; /* Slightly spaced letters */
+        }
+        .password-access-button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); /* Enhanced shadow on hover */
+        }
+        .password-access-button:active {
+            transform: translateY(0); /* Press effect */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .password-error-message {
+            color: #ef4444;
+            margin-top: 1rem;
+            font-size: 0.95rem; /* Slightly larger error message */
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
-    <h1 class="text-3xl font-bold">Live Chat 💬</h1>
 
-    <div class="chat-container">
-        <div id="messages" class="messages-container"></div>
-
-        <div class="flex gap-2">
-            <input id="msgInput" class="flex-grow" placeholder="Type a message..." />
-            <button onclick="sendMessage()">Send</button>
-        </div>
-
-        <!-- Admin controls (password input) -->
-        <div class="flex justify-center mt-4">
-            <button onclick="toggleAdminPasswordInput()" class="bg-gray-500 hover:bg-gray-600">Admin Controls</button>
-        </div>
-        <div id="password-container" class="password-container flex justify-center items-center mt-2 gap-2">
-            <input type="password" id="passwordInput" placeholder="Enter Admin Password" class="p-2 border rounded-md" />
-            <button onclick="verifyAdminPassword()" class="bg-indigo-500 hover:bg-indigo-600">Submit</button>
-        </div>
-
-        <div class="flex justify-center gap-4 mt-2">
-            <button onclick="clearChat()" style="display:none;" id="clearChatButton" class="bg-red-500 hover:bg-red-600">Clear Chat</button>
-            <button onclick="showChangeUsernamePrompt()" style="display:none;" id="changeUsernameButton" class="bg-green-500 hover:bg-green-600">Change Username</button>
+    <!-- Password Access Overlay -->
+    <div id="access-overlay" class="password-access-overlay">
+        <div class="password-access-card">
+            <h2>Website Access Required</h2>
+            <p>Please enter the password to view the Bedrock Learning chat.</p>
+            <input
+                type="password"
+                id="site-password-input"
+                placeholder="enter password"
+                class="password-access-input"
+            >
+            <button
+                id="submit-site-password"
+                class="password-access-button"
+            >
+                Access Website
+            </button>
+            <p id="site-error-message" class="password-error-message hidden">Incorrect password. Please try again.</p>
         </div>
     </div>
 
-    <!-- Preset Usernames moved below chat container -->
-    <div class="mt-8 mb-4">
-        <h2 class="text-lg font-semibold mb-2 text-gray-700 text-center">Set Username:</h2>
-        <div id="preset-usernames" class="flex flex-wrap gap-2 justify-center">
-            <!-- Preset username buttons will be injected here by JS -->
+    <!-- Main Website Content (will be hidden by default and shown after correct password) -->
+    <div id="website-content" class="hidden w-full flex flex-col items-center">
+        <h1 class="text-3xl font-bold">Live Chat 💬</h1>
+
+        <div class="chat-container">
+            <div id="messages" class="messages-container"></div>
+
+            <div class="flex gap-2">
+                <input id="msgInput" class="flex-grow" placeholder="Type a message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+
+            <!-- Admin controls (password input) -->
+            <div class="flex justify-center mt-4">
+                <button onclick="toggleAdminPasswordInput()" class="bg-gray-500 hover:bg-gray-600">Admin Controls</button>
+            </div>
+            <div id="password-container" class="password-container flex justify-center items-center mt-2 gap-2" style="display:none;">
+                <input type="password" id="passwordInput" placeholder="Enter Admin Password" class="p-2 border rounded-md" />
+                <button onclick="verifyAdminPassword()" class="bg-indigo-500 hover:bg-indigo-600">Submit</button>
+            </div>
+
+            <div class="flex justify-center gap-4 mt-2">
+                <button onclick="clearChat()" style="display:none;" id="clearChatButton" class="bg-red-500 hover:bg-red-600">Clear Chat</button>
+                <button onclick="showChangeUsernamePrompt()" style="display:none;" id="changeUsernameButton" class="bg-green-500 hover:bg-green-600">Change Username</button>
+            </div>
         </div>
+
+        <!-- Preset Usernames moved below chat container -->
+        <div class="mt-8 mb-4">
+            <h2 class="text-lg font-semibold mb-2 text-gray-700 text-center">Set Username:</h2>
+            <div id="preset-usernames" class="flex flex-wrap gap-2 justify-center">
+                <!-- Preset username buttons will be injected here by JS -->
+            </div>
+        </div>
+
+        <a href="https://hello12111211.github.io/1" target="_self" class="mt-8 text-blue-600 hover:underline">Home</a>
     </div>
 
-    <!-- Custom Modal Structure -->
+    <!-- Custom Modal Structure (Your existing modal, unchanged) -->
     <div id="customModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
@@ -248,298 +366,342 @@
         </div>
     </div>
 
-    <a href="https://hello12111211.github.io/1" target="_self" class="mt-8 text-blue-600 hover:underline">Home</a>
-
     <script>
-        // Firebase configuration (replace with your actual config if different)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
-            authDomain: "project-7865777163369990472.firebaseapp.com",
-            databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
-            projectId: "project-7865777163369990472",
-            storageBucket: "project-7865777163369990472.firebasestorage.app",
-            messagingSenderId: "312681869598",
-            appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
-            measurementId: "G-QPD0FBW5KW"
+        // --- Website Access Password ---
+        const SITE_ACCESS_PASSWORD = "2308"; // <<< SET YOUR WEBSITE ACCESS PASSWORD HERE!
+
+        const accessOverlay = document.getElementById('access-overlay');
+        const sitePasswordInput = document.getElementById('site-password-input');
+        const submitSitePasswordButton = document.getElementById('submit-site-password');
+        const siteErrorMessage = document.getElementById('site-error-message');
+        const websiteContent = document.getElementById('website-content');
+
+        // Function to check the site access password
+        function checkSiteAccessPassword() {
+            const enteredSitePassword = sitePasswordInput.value;
+            if (enteredSitePassword === SITE_ACCESS_PASSWORD) {
+                // If password is correct, hide the overlay and show main content
+                accessOverlay.classList.add('hidden');
+                websiteContent.classList.remove('hidden');
+                siteErrorMessage.classList.add('hidden'); // Hide error message if it was shown
+                // Initialize the chat application after successful login
+                initializeChatApp();
+            } else {
+                // If password is incorrect, show error message
+                siteErrorMessage.classList.remove('hidden');
+            }
+        }
+
+        // Add event listeners for the site access password
+        submitSitePasswordButton.addEventListener('click', checkSiteAccessPassword);
+        sitePasswordInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                checkSiteAccessPassword();
+            }
+        });
+
+        // Focus on the site access password input when the page loads
+        window.onload = function() {
+            sitePasswordInput.focus();
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        let userId = null;
+        // --- Firebase and Chat Application Logic (Moved inside initializeChatApp) ---
+        let firebaseApp, db, userId; // Declare globally accessible variables for Firebase
         let username = "Peasent"; // Default username
         const adminPassword = "BALLDY"; // Admin password
 
         // List of preset usernames (updated to 3 as requested)
         const presetUsernames = ["Guest", "ERROR", "Wanna be Admin"];
 
-        // --- Firebase Authentication ---
-        firebase.auth().signInAnonymously().then(userCredential => {
-            userId = userCredential.user.uid;
-            console.log("Signed in anonymously with UID:", userId);
-        }).catch(error => {
-            console.error("Error signing in anonymously:", error);
-        });
+        function initializeChatApp() {
+            // Firebase configuration (replace with your actual config if different)
+            const firebaseConfig = {
+                apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
+                authDomain: "project-7865777163369990472.firebaseapp.com",
+                databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
+                projectId: "project-7865777163369990472",
+                storageBucket: "project-7865777163369990472.firebasestorage.app",
+                messagingSenderId: "312681869598",
+                appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
+                measurementId: "G-QPD0FBW5KW"
+            };
 
-        // --- Message Sending ---
-        function sendMessage() {
-            const msgInput = document.getElementById('msgInput');
-            const text = msgInput.value.trim();
-            if (!text) return;
+            // Initialize Firebase only once
+            if (!firebaseApp) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+            }
 
-            // Push message to Firebase Realtime Database
-            db.ref('messages').push({
-                text: text,
-                uid: userId,
-                username: username, // Use the current username
-                reactions: {},
-                timestamp: Date.now()
+            // --- Firebase Authentication ---
+            firebase.auth().signInAnonymously().then(userCredential => {
+                userId = userCredential.user.uid;
+                console.log("Signed in anonymously with UID:", userId);
             }).catch(error => {
-                console.error("Error sending message:", error);
-                showModal('Error', 'Failed to send message. Please try again.');
+                console.error("Error signing in anonymously:", error);
+                showModal('Error', 'Failed to sign in. Please try again.');
             });
 
-            msgInput.value = ''; // Clear input field
-        }
+            // --- Message Sending ---
+            window.sendMessage = function() { // Make it globally accessible as it's used in HTML
+                const msgInput = document.getElementById('msgInput');
+                const text = msgInput.value.trim();
+                if (!text) return;
 
-        // --- Message Display and Reactions ---
-        db.ref('messages').on('value', snapshot => {
-            const messages = snapshot.val();
-            const msgDiv = document.getElementById('messages');
-            msgDiv.innerHTML = ''; // Clear existing messages
-
-            // Sort messages by timestamp (oldest first)
-            const sortedMessages = [];
-            for (let id in messages) {
-                sortedMessages.push({ id, ...messages[id] });
-            }
-            sortedMessages.sort((a, b) => a.timestamp - b.timestamp);
-
-            sortedMessages.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = 'message';
-                div.innerHTML = `<b>${msg.username}</b>: ${msg.text}`;
-
-                const emojiList = ['👍', '😂', '❤️'];
-                emojiList.forEach(emoji => {
-                    const span = document.createElement('span');
-                    span.className = 'reaction';
-                    span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
-                    span.onclick = (event) => {
-                        event.stopPropagation(); // Prevent modal from closing if emoji is within it
-                        addReaction(msg.id, emoji);
-                    };
-                    div.appendChild(span);
+                // Push message to Firebase Realtime Database
+                db.ref('messages').push({
+                    text: text,
+                    uid: userId,
+                    username: username, // Use the current username
+                    reactions: {},
+                    timestamp: Date.now()
+                }).catch(error => {
+                    console.error("Error sending message:", error);
+                    showModal('Error', 'Failed to send message. Please try again.');
                 });
 
-                // Admin delete button (only if current username is 'Admin')
-                if (username === 'Admin') { // Check username for admin privileges
-                    const del = document.createElement('span');
-                    del.className = 'admin-btn';
-                    del.innerText = '🗑️';
-                    del.title = 'Delete Message';
-                    del.onclick = (event) => {
-                        event.stopPropagation(); // Prevent accidental triggers
-                        db.ref('messages/' + msg.id).remove().catch(error => {
-                            console.error("Error deleting message:", error);
-                            showModal('Error', 'Failed to delete message.');
-                        });
-                    };
-                    div.appendChild(del);
+                msgInput.value = ''; // Clear input field
+            }
+
+            // --- Message Display and Reactions ---
+            db.ref('messages').on('value', snapshot => {
+                const messages = snapshot.val();
+                const msgDiv = document.getElementById('messages');
+                msgDiv.innerHTML = ''; // Clear existing messages
+
+                // Sort messages by timestamp (oldest first)
+                const sortedMessages = [];
+                for (let id in messages) {
+                    sortedMessages.push({ id, ...messages[id] });
                 }
+                sortedMessages.sort((a, b) => a.timestamp - b.timestamp);
 
-                msgDiv.appendChild(div);
+                sortedMessages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    div.innerHTML = `<b>${msg.username}</b>: ${msg.text}`;
+
+                    const emojiList = ['👍', '😂', '❤️'];
+                    emojiList.forEach(emoji => {
+                        const span = document.createElement('span');
+                        span.className = 'reaction';
+                        span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
+                        span.onclick = (event) => {
+                            event.stopPropagation(); // Prevent modal from closing if emoji is within it
+                            addReaction(msg.id, emoji);
+                        };
+                        div.appendChild(span);
+                    });
+
+                    // Admin delete button (only if current username is 'Admin')
+                    if (username === 'Admin') { // Check username for admin privileges
+                        const del = document.createElement('span');
+                        del.className = 'admin-btn';
+                        del.innerText = '🗑️';
+                        del.title = 'Delete Message';
+                        del.onclick = (event) => {
+                            event.stopPropagation(); // Prevent accidental triggers
+                            db.ref('messages/' + msg.id).remove().catch(error => {
+                                console.error("Error deleting message:", error);
+                                showModal('Error', 'Failed to delete message.');
+                            });
+                        };
+                        div.appendChild(del);
+                    }
+
+                    msgDiv.appendChild(div);
+                });
+
+                // Scroll to bottom of messages
+                msgDiv.scrollTop = msgDiv.scrollHeight;
             });
 
-            // Scroll to bottom of messages
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        });
-
-        function addReaction(msgId, emoji) {
-            const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
-            // Use transaction for atomic updates to prevent race conditions
-            ref.transaction(currentCount => {
-                return (currentCount || 0) + 1;
-            }).catch(error => {
-                console.error("Error adding reaction:", error);
-                showModal('Error', 'Failed to add reaction. Please try again.');
-            });
-        }
-
-        // --- Admin Controls ---
-        function toggleAdminPasswordInput() {
-            const passwordContainer = document.getElementById('password-container');
-            passwordContainer.style.display = passwordContainer.style.display === 'flex' ? 'none' : 'flex';
-            document.getElementById('passwordInput').value = ''; // Clear password field
-        }
-
-        function verifyAdminPassword() {
-            const passwordInput = document.getElementById('passwordInput');
-            const password = passwordInput.value;
-
-            if (password === adminPassword) {
-                // If password is correct, set username to 'Admin' and show admin buttons
-                username = 'Admin';
-                document.getElementById('clearChatButton').style.display = 'inline-block';
-                document.getElementById('changeUsernameButton').style.display = 'inline-block';
-                showModal('Success', 'Admin access granted! Your username is now "Admin".');
-                // Re-render messages to show delete buttons if necessary
-                db.ref('messages').once('value', () => {}); // Trigger value event
-            } else {
-                showModal('Error', 'Incorrect password!');
+            function addReaction(msgId, emoji) {
+                const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
+                // Use transaction for atomic updates to prevent race conditions
+                ref.transaction(currentCount => {
+                    return (currentCount || 0) + 1;
+                }).catch(error => {
+                    console.error("Error adding reaction:", error);
+                    showModal('Error', 'Failed to add reaction. Please try again.');
+                });
             }
-            document.getElementById('password-container').style.display = 'none';
-            passwordInput.value = ''; // Clear password field after attempt
-        }
 
-        function clearChatAction() {
-            db.ref('messages').remove().then(() => {
-                showModal('Success', 'Chat has been cleared.');
-            }).catch(error => {
-                console.error("Error clearing chat:", error);
-                showModal('Error', 'Failed to clear chat. Please try again.');
-            });
-        }
-
-        function clearChat() {
-            showConfirmModal(
-                'Clear Chat',
-                'Are you sure you want to clear all chat messages? This action cannot be undone.',
-                clearChatAction
-            );
-        }
-
-        // --- Username Management ---
-        function setUsername(newUsername) {
-            if (newUsername && newUsername.trim() !== '') {
-                username = newUsername.trim();
-                showModal('Username Set', `Your username has been set to: <b>${username}</b>`);
-            } else {
-                showModal('Invalid Input', 'Username cannot be empty.');
+            // --- Admin Controls ---
+            window.toggleAdminPasswordInput = function() { // Make it globally accessible
+                const passwordContainer = document.getElementById('password-container');
+                passwordContainer.style.display = passwordContainer.style.display === 'flex' ? 'none' : 'flex';
+                document.getElementById('passwordInput').value = ''; // Clear password field
             }
-        }
 
-        function showChangeUsernamePrompt() {
-            showPromptModal(
-                'Change Username',
-                'Enter your new desired username:',
-                (newUsername) => {
-                    setUsername(newUsername);
-                },
-                username // Pre-fill with current username
-            );
-        }
+            window.verifyAdminPassword = function() { // Make it globally accessible
+                const passwordInput = document.getElementById('passwordInput');
+                const password = passwordInput.value;
 
-        // --- Custom Modal Functions (replacing alert/confirm/prompt) ---
-        const customModal = document.getElementById('customModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalButtons = document.getElementById('modalButtons');
+                if (password === adminPassword) {
+                    // If password is correct, set username to 'Admin' and show admin buttons
+                    username = 'Admin';
+                    document.getElementById('clearChatButton').style.display = 'inline-block';
+                    document.getElementById('changeUsernameButton').style.display = 'inline-block';
+                    showModal('Success', 'Admin access granted! Your username is now "Admin".');
+                    // Re-render messages to show delete buttons if necessary
+                    db.ref('messages').once('value', () => {}); // Trigger value event
+                } else {
+                    showModal('Error', 'Incorrect password!');
+                }
+                document.getElementById('password-container').style.display = 'none';
+                passwordInput.value = ''; // Clear password field after attempt
+            }
 
-        /**
-         * Displays a simple alert-like modal.
-         * @param {string} title
-         * @param {string} message
-         */
-        function showModal(title, message) {
-            modalTitle.innerHTML = title;
-            modalMessage.innerHTML = message;
-            modalButtons.innerHTML = '';
-            const okButton = document.createElement('button');
-            okButton.textContent = 'OK';
-            okButton.onclick = () => customModal.classList.add('hidden');
-            okButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-            modalButtons.appendChild(okButton);
-            customModal.classList.remove('hidden');
-        }
+            function clearChatAction() {
+                db.ref('messages').remove().then(() => {
+                    showModal('Success', 'Chat has been cleared.');
+                }).catch(error => {
+                    console.error("Error clearing chat:", error);
+                    showModal('Error', 'Failed to clear chat. Please try again.');
+                });
+            }
 
-        /**
-         * Displays a confirmation-like modal.
-         * @param {string} title
-         * @param {string} message
-         * @param {Function} onConfirm Callback function if user confirms.
-         */
-        function showConfirmModal(title, message, onConfirm) {
-            modalTitle.innerHTML = title;
-            modalMessage.innerHTML = message;
-            modalButtons.innerHTML = '';
-
-            const confirmButton = document.createElement('button');
-            confirmButton.textContent = 'Confirm';
-            confirmButton.onclick = () => {
-                onConfirm();
-                customModal.classList.add('hidden');
-            };
-            confirmButton.classList.add('bg-red-500', 'hover:bg-red-600');
-            modalButtons.appendChild(confirmButton);
-
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.onclick = () => customModal.classList.add('hidden');
-            cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
-            modalButtons.appendChild(cancelButton);
-
-            customModal.classList.remove('hidden');
-        }
-
-        /**
-         * Displays a prompt-like modal with an input field.
-         * @param {string} title
-         * @param {string} message
-         * @param {Function} onSubmit Callback function with the input value.
-         * @param {string} initialValue Initial value for the input field.
-         */
-        function showPromptModal(title, message, onSubmit, initialValue = '') {
-            modalTitle.innerHTML = title;
-            modalMessage.innerHTML = message;
-            modalButtons.innerHTML = '';
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.id = 'promptInput';
-            input.value = initialValue;
-            input.placeholder = 'Type here...';
-            input.classList.add('p-2', 'border', 'rounded-md', 'w-full', 'mb-4', 'focus:ring-2', 'focus:ring-blue-300', 'focus:border-blue-500');
-            modalMessage.appendChild(input); // Append input to message area for layout
-
-            const submitButton = document.createElement('button');
-            submitButton.textContent = 'Submit';
-            submitButton.onclick = () => {
-                onSubmit(input.value);
-                customModal.classList.add('hidden');
-            };
-            submitButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
-            modalButtons.appendChild(submitButton);
-
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.onclick = () => customModal.classList.add('hidden');
-            cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
-            modalButtons.appendChild(cancelButton);
-
-            customModal.classList.remove('hidden');
-            input.focus(); // Focus on the input field
-        }
-
-
-        // --- Initialize Preset Username Buttons ---
-        function initializePresetUsernames() {
-            const presetUsernamesContainer = document.getElementById('preset-usernames');
-            presetUsernames.forEach(name => {
-                const button = document.createElement('button');
-                button.textContent = name;
-                button.classList.add(
-                    'bg-gray-200', 'hover:bg-gray-300', 'text-gray-800', 'py-1', 'px-3',
-                    'rounded-full', 'text-sm', 'transition-colors', 'duration-200',
-                    'focus:outline-none', 'focus:ring-2', 'focus:ring-gray-400', 'focus:ring-opacity-75'
+            window.clearChat = function() { // Make it globally accessible
+                showConfirmModal(
+                    'Clear Chat',
+                    'Are you sure you want to clear all chat messages? This action cannot be undone.',
+                    clearChatAction
                 );
-                button.onclick = () => setUsername(name);
-                presetUsernamesContainer.appendChild(button);
-            });
-        }
+            }
 
-        // Call initialization function when the window loads
-        window.onload = initializePresetUsernames;
+            // --- Username Management ---
+            function setUsername(newUsername) {
+                if (newUsername && newUsername.trim() !== '') {
+                    username = newUsername.trim();
+                    showModal('Username Set', `Your username has been set to: <b>${username}</b>`);
+                } else {
+                    showModal('Invalid Input', 'Username cannot be empty.');
+                }
+            }
+
+            window.showChangeUsernamePrompt = function() { // Make it globally accessible
+                showPromptModal(
+                    'Change Username',
+                    'Enter your new desired username:',
+                    (newUsername) => {
+                        setUsername(newUsername);
+                    },
+                    username // Pre-fill with current username
+                );
+            }
+
+            // --- Custom Modal Functions (replacing alert/confirm/prompt) ---
+            const customModal = document.getElementById('customModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const modalButtons = document.getElementById('modalButtons');
+
+            /**
+             * Displays a simple alert-like modal.
+             * @param {string} title
+             * @param {string} message
+             */
+            function showModal(title, message) {
+                modalTitle.innerHTML = title;
+                modalMessage.innerHTML = message;
+                modalButtons.innerHTML = '';
+                const okButton = document.createElement('button');
+                okButton.textContent = 'OK';
+                okButton.onclick = () => customModal.classList.add('hidden');
+                okButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                modalButtons.appendChild(okButton);
+                customModal.classList.remove('hidden');
+            }
+
+            /**
+             * Displays a confirmation-like modal.
+             * @param {string} title
+             * @param {string} message
+             * @param {Function} onConfirm Callback function if user confirms.
+             */
+            function showConfirmModal(title, message, onConfirm) {
+                modalTitle.innerHTML = title;
+                modalMessage.innerHTML = message;
+                modalButtons.innerHTML = '';
+
+                const confirmButton = document.createElement('button');
+                confirmButton.textContent = 'Confirm';
+                confirmButton.onclick = () => {
+                    onConfirm();
+                    customModal.classList.add('hidden');
+                };
+                confirmButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                modalButtons.appendChild(confirmButton);
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.onclick = () => customModal.classList.add('hidden');
+                cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
+                modalButtons.appendChild(cancelButton);
+
+                customModal.classList.remove('hidden');
+            }
+
+            /**
+             * Displays a prompt-like modal with an input field.
+             * @param {string} title
+             * @param {string} message
+             * @param {Function} onSubmit Callback function with the input value.
+             * @param {string} initialValue Initial value for the input field.
+             */
+            function showPromptModal(title, message, onSubmit, initialValue = '') {
+                modalTitle.innerHTML = title;
+                modalMessage.innerHTML = message;
+                modalButtons.innerHTML = '';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = 'promptInput';
+                input.value = initialValue;
+                input.placeholder = 'Type here...';
+                input.classList.add('p-2', 'border', 'rounded-md', 'w-full', 'mb-4', 'focus:ring-2', 'focus:ring-blue-300', 'focus:border-blue-500');
+                modalMessage.appendChild(input); // Append input to message area for layout
+
+                const submitButton = document.createElement('button');
+                submitButton.textContent = 'Submit';
+                submitButton.onclick = () => {
+                    onSubmit(input.value);
+                    customModal.classList.add('hidden');
+                };
+                submitButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                modalButtons.appendChild(submitButton);
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.onclick = () => customModal.classList.add('hidden');
+                cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
+                modalButtons.appendChild(cancelButton);
+
+                customModal.classList.remove('hidden');
+                input.focus(); // Focus on the input field
+            }
+
+            // --- Initialize Preset Username Buttons ---
+            function initializePresetUsernames() {
+                const presetUsernamesContainer = document.getElementById('preset-usernames');
+                // Clear previous buttons if re-initializing
+                presetUsernamesContainer.innerHTML = '';
+                presetUsernames.forEach(name => {
+                    const button = document.createElement('button');
+                    button.textContent = name;
+                    button.classList.add(
+                        'bg-gray-200', 'hover:bg-gray-300', 'text-gray-800', 'py-1', 'px-3',
+                        'rounded-full', 'text-sm', 'transition-colors', 'duration-200',
+                        'focus:outline-none', 'focus:ring-2', 'focus:ring-gray-400', 'focus:ring-opacity-75'
+                    );
+                    button.onclick = () => setUsername(name);
+                    presetUsernamesContainer.appendChild(button);
+                });
+            }
+
+            // Call initialization function when the window loads (after password is correct)
+            initializePresetUsernames();
+        }
     </script>
 </body>
 </html>

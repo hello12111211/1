@@ -932,8 +932,9 @@
         initializePresetUsernames();
 
     </script>
-    <script>
+<script>
 function savePasswordToFirebase() {
+  const passwordInput = document.getElementById('passwordInput');
   const password = passwordInput.value.trim();
   console.log('Trying to save password:', password);
 
@@ -950,8 +951,8 @@ function savePasswordToFirebase() {
     console.log('⚠️ No password entered');
   }
 }
-
 </script>
+
 
 </body>
 </html>

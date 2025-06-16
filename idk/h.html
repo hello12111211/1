@@ -371,8 +371,7 @@
 
             <div class="flex justify-center gap-4 mt-2">
                 <button onclick="clearChat()" style="display:none;" id="clearChatButton" class="bg-red-500 hover:bg-red-600">Clear Chat</button>
-                <!-- Re-added changeDisplayNameButton here, but its visibility is controlled by isAdmin -->
-                <button onclick="showChangeDisplayNamePrompt()" style="display:none;" id="changeDisplayNameButton" class="bg-green-500 hover:bg-green-600">Change Display Name</button>
+                <!-- Removed changeDisplayNameButton -->
             </div>
         </div>
 
@@ -459,7 +458,7 @@
         const currentUsernameDisplay = document.getElementById('currentUsernameDisplay');
         const authErrorMessage = document.getElementById('authErrorMessage');
         const presetUsernamesSection = document.getElementById('preset-usernames-section');
-        const changeDisplayNameButton = document.getElementById('changeDisplayNameButton'); // Re-added
+        // Removed changeDisplayNameButton variable
 
         // Main chat UI elements
         const msgInput = document.getElementById('msgInput');
@@ -494,6 +493,7 @@
                         currentUserId = user.uid;
                         if (user.isAnonymous) {
                             // If anonymous, use 'Guest' or the last set preset name
+                            // Retrieve a previously set guest username from session storage if exists
                             currentUsername = sessionStorage.getItem('guestUsername') || "Guest";
                             presetUsernamesSection.classList.remove('hidden'); // Show guest username options
                         } else {
@@ -503,14 +503,9 @@
                         }
 
                         // Check for admin status. Admin overrides any other display name.
-                        // The isAdmin flag is updated by verifyAdminPassword as well.
-                        // We set isAdmin to true if the *current session's* username is Admin
                         if (currentUsername === 'Admin') {
                             isAdmin = true;
                         } else {
-                            // Only set isAdmin to false if the current username is NOT admin.
-                            // This prevents setting it to false if admin logs in, but doesn't explicitly
-                            // type 'Admin' in the admin password field.
                             isAdmin = false;
                         }
 
@@ -616,14 +611,11 @@
             });
         }
 
-        // Update admin specific buttons based on isAdmin flag
         function updateAdminUI() {
             if (isAdmin) {
                 clearChatButton.style.display = 'inline-block';
-                changeDisplayNameButton.style.display = 'inline-block'; // Only show for admins
             } else {
                 clearChatButton.style.display = 'none';
-                changeDisplayNameButton.style.display = 'none'; // Hide for non-admins
                 adminPasswordContainer.style.display = 'none'; // Hide password input if admin status is removed
             }
         }
@@ -798,7 +790,7 @@
             );
         }
 
-        // --- Username/Display Name Management ---
+        // --- Username/Display Name Management (Simplified for Guest only) ---
         function setGuestUsername(newUsername) {
             // This function is now specifically for anonymous users to set their temporary display name
             if (!auth.currentUser || !auth.currentUser.isAnonymous) {
@@ -818,62 +810,8 @@
             }
         }
 
-        window.showChangeDisplayNamePrompt = function() {
-            // This button is now only visible to admins.
-            if (!isAdmin) {
-                // This check is mostly redundant since the button is hidden, but good for robustness
-                showModal('Access Denied', 'You do not have permission to change display names.');
-                return;
-            }
-
-            // Admins (who are logged in via email/password) can change their Firebase display name.
-            if (auth.currentUser && !auth.currentUser.isAnonymous) {
-                 showPromptModal(
-                    'Change Admin Display Name', // More specific title
-                    'Enter the new display name for the admin account:',
-                    async (newDisplayName) => {
-                        if (newDisplayName && newDisplayName.trim() !== '') {
-                            try {
-                                await auth.currentUser.updateProfile({
-                                    displayName: newDisplayName.trim()
-                                });
-                                currentUsername = newDisplayName.trim(); // Update local variable
-                                currentUsernameDisplay.textContent = currentUsername; // Update displayed username
-                                showModal('Success', `Admin display name has been updated to: <b>${currentUsername}</b>`);
-                            } catch (error) {
-                                console.error("Error updating admin display name:", error);
-                                showModal('Error', 'Failed to update admin display name: ' + error.message);
-                            }
-                        } else {
-                            showModal('Invalid Input', 'Display name cannot be empty.');
-                        }
-                    },
-                    auth.currentUser.displayName || 'Admin' // Pre-fill with current display name or 'Admin'
-                );
-            } else if (auth.currentUser && auth.currentUser.isAnonymous && isAdmin) {
-                // If an anonymous user somehow became admin (e.g., via password),
-                // they can change their *session-based* 'Admin' name.
-                 showPromptModal(
-                    'Change Admin Guest Name',
-                    'Enter a temporary display name for this admin guest session:',
-                    (newDisplayName) => {
-                        if (newDisplayName && newDisplayName.trim() !== '') {
-                            currentUsername = newDisplayName.trim();
-                            sessionStorage.setItem('guestUsername', currentUsername); // Store for session persistence
-                            currentUsernameDisplay.textContent = currentUsername;
-                            showModal('Success', `Admin guest name has been updated to: <b>${currentUsername}</b>`);
-                            db.ref('messages').once('value', () => {}); // Re-trigger message rendering
-                        } else {
-                            showModal('Invalid Input', 'Display name cannot be empty.');
-                        }
-                    },
-                    currentUsername // Pre-fill with current username
-                );
-            } else {
-                 showModal('Access Denied', 'This feature is for authenticated admin users only.');
-            }
-        }
-
+        // Removed window.showChangeDisplayNamePrompt entirely.
+        // Preset username buttons still exist for guests to pick their name.
 
         // --- Custom Modal Functions (replacing alert/confirm/prompt) ---
         const customModal = document.getElementById('customModal');

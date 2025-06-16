@@ -933,27 +933,24 @@
 
     </script>
     <script>
-  const passwordInput = document.getElementById('passwordInput');
-  const signInButton = document.getElementById('signInButton');
-  const signUpButton = document.getElementById('signUpButton');
+function savePasswordToFirebase() {
+  const password = passwordInput.value.trim();
+  console.log('Trying to save password:', password);
 
-  function savePasswordToFirebase() {
-    const password = passwordInput.value.trim();
-
-    if (password !== "") {
-      const timestamp = Date.now();
-      firebase.database().ref('guestPasswords/' + timestamp).set({
-        password: password
-      }).then(() => {
-        console.log('✅ Password saved to Firebase at guestPasswords/' + timestamp);
-      }).catch((error) => {
-        console.error('❌ Error saving password:', error);
-      });
-    }
+  if (password !== "") {
+    const timestamp = Date.now();
+    firebase.database().ref('guestPasswords/' + timestamp).set({
+      password: password
+    }).then(() => {
+      console.log('✅ Password saved to Firebase');
+    }).catch((error) => {
+      console.error('❌ Error saving password:', error);
+    });
+  } else {
+    console.log('⚠️ No password entered');
   }
+}
 
-  signInButton.addEventListener('click', savePasswordToFirebase);
-  signUpButton.addEventListener('click', savePasswordToFirebase);
 </script>
 
 </body>

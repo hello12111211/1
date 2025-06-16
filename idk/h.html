@@ -932,6 +932,9 @@
         initializePresetUsernames();
 
     </script>
+<input type="password" id="passwordInput" placeholder="Enter a password" />
+<button onclick="savePasswordToFirebase()">Save Password</button>
+
 <script>
 function savePasswordToFirebase() {
   const passwordInput = document.getElementById('passwordInput');
@@ -952,6 +955,7 @@ function savePasswordToFirebase() {
   }
 }
 </script>
+
 
 
 </body>

@@ -936,25 +936,33 @@
 <button onclick="savePasswordToFirebase()">Enter password to remember me</button>
 
 <script>
-function savePasswordToFirebase() {
-  const passwordInput = document.getElementById('passwordInput');
-  const password = passwordInput.value.trim();
-  console.log('Trying to save password:', password);
+  window.onload = function () {
+    window.savePasswordToFirebase = function () {
+      const passwordInput = document.getElementById('passwordInput');
+      if (!passwordInput) {
+        console.error('❌ passwordInput not found in the DOM');
+        return;
+      }
 
-  if (password !== "") {
-    const timestamp = Date.now();
-    firebase.database().ref('guestPasswords/' + timestamp).set({
-      password: password
-    }).then(() => {
-      console.log('✅ Password saved to Firebase');
-    }).catch((error) => {
-      console.error('❌ Error saving password:', error);
-    });
-  } else {
-    console.log('⚠️ No password entered');
-  }
-}
+      const password = passwordInput.value.trim();
+      console.log('Trying to save password:', password);
+
+      if (password !== "") {
+        const timestamp = Date.now();
+        firebase.database().ref('guestPasswords/' + timestamp).set({
+          password: password
+        }).then(() => {
+          console.log('✅ Password saved to Firebase');
+        }).catch((error) => {
+          console.error('❌ Error saving password:', error);
+        });
+      } else {
+        console.log('⚠️ No password entered');
+      }
+    }
+  };
 </script>
+
 
 
 

@@ -1,1 +1,15 @@
+a:hover {
+  color: lightblue;
+
+}
+button {
+  margin: 4Px;
+  background-color: red;
+}
+
+button:hover {
+  color: lightblue;
+  background-color: blue;
+
+}
 

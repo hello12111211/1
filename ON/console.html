@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Universal Console</title>
+  <style>
+    body { margin: 0; background: #000; color: #0f0; font-family: monospace; }
+    #log { padding: 10px; max-height: 80vh; overflow-y: auto; }
+    #input { width: 100%; box-sizing: border-box; padding: 12px; background: #111; color: #0f0; border: none; font-size: 16px; }
+    .error { color: red; }
+    .input-line { color: #0ff; }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+  <input id="input" placeholder="Type JavaScript here and press Enter" autofocus />
+  <script>
+    const input = document.getElementById('input');
+    const log = document.getElementById('log');
+
+    function appendOutput(html, cls = '') {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      if (cls) div.classList.add(cls);
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const code = input.value.trim();
+        if (code === '') return;
+        appendOutput(`> ${code}`, 'input-line');
+        try {
+          const result = Function('"use strict"; return (' + code + ')')();
+          appendOutput(result === undefined ? 'undefined' : result);
+        } catch (err) {
+          appendOutput(err, 'error');
+        }
+        input.value = '';
+      }
+    });
+  </script>
+</body>
+</html>

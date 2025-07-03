@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bedrock</title>
+    <link rel="icon" type="image/x-xicon" href="https://hello12111211.github.io/1/idk/Fevicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <style>
+        #auth-section {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+        /* Apply Inter font and basic styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            /* Added for password protection overlay */
+            position: relative; /* Ensure body can be a positioning context */
+            /* Enhanced background for the entire page */
+            background: linear-gradient(to bottom right, #e0f2fe, #bfdbfe, #93c5fd); /* Soft blue gradient */
+        }
+
+        /* Container for chat and controls */
+        .chat-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        h1 {
+            color: #1f2937; /* Dark gray text */
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .messages-container {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb; /* Light border */
+            border-radius: 8px;
+            padding: 12px;
+            background-color: #f9fafb; /* Lighter background for messages */
+            flex-grow: 1; /* Allow it to grow and fill space */
+        }
+
+        .message {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            background-color: #eff6ff; /* Light blue for messages */
+            border-radius: 8px;
+            word-wrap: break-word; /* Ensure long words wrap */
+            color: #1f2937;
+        }
+
+        .message b {
+            color: #2563eb; /* Blue for username */
+        }
+
+        .reaction {
+            cursor: pointer;
+            margin-left: 8px;
+            padding: 4px 6px;
+            background-color: #e0f2fe; /* Lighter blue for reactions */
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .reaction:hover {
+            background-color: #bfdbfe;
+        }
+
+        .admin-btn {
+            margin-left: 10px;
+            color: #ef4444; /* Red for delete */
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .admin-btn:hover {
+            color: #dc2626;
+        }
+
+        /* Input and button styling */
+        #msgInput,
+        #emailInput,
+        #passwordInput {
+            flex-grow: 1;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #msgInput:focus,
+        #emailInput:focus,
+        #passwordInput:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        button {
+            background-color: #3b82f6; /* Blue button */
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Specific styles for password input (admin) */
+        #adminPasswordInput {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-right: 10px;
+            outline: none;
+        }
+
+        /* Modal styling (for your existing modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+
+        .modal-content p {
+            margin-bottom: 24px;
+            color: #4b5563;
+        }
+
+        .modal-buttons button {
+            margin: 0 8px;
+            min-width: 100px;
+        }
+
+        .modal-buttons .cancel-btn {
+            background-color: #6b7280;
+        }
+        .modal-buttons .cancel-btn:hover {
+            background-color: #4b5563;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .chat-container {
+                padding: 16px;
+                margin: 10px;
+            }
+            #msgInput {
+                padding: 8px 12px;
+            }
+            button {
+                padding: 8px 14px;
+            }
+            .modal-content {
+                padding: 20px;
+            }
+            .modal-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .modal-buttons button {
+                width: 100%;
+                margin: 0;
+            }
+        }
+
+        /* NEW & IMPROVED Styles for the password access overlay */
+        .password-access-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(to top left, rgba(60, 130, 246, 0.9), rgba(29, 78, 216, 0.9)); /* Blue gradient overlay */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            font-family: 'Inter', sans-serif;
+            backdrop-filter: blur(5px); /* Subtle blur for depth */
+        }
+        .password-access-card {
+            background-color: #ffffff;
+            padding: 2.5rem; /* Increased padding */
+            border-radius: 1.5rem; /* More rounded */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); /* Stronger, softer shadow */
+            max-width: 32rem; /* Slightly wider */
+            width: 90%;
+            text-align: center;
+            animation: fadeInScale 0.6s ease-out forwards; /* Smoother animation */
+            border: 1px solid #e2e8f0; /* Subtle border */
+        }
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .password-access-card h2 {
+            font-size: 2.25rem; /* Larger title */
+            font-weight: 800; /* Extra bold */
+            color: #1a202c; /* Darker text */
+            margin-bottom: 1.5rem;
+        }
+        .password-access-card p {
+            font-size: 1.125rem; /* Slightly larger message text */
+            color: #4a5568; /* Slightly darker grey */
+            margin-bottom: 1.5rem;
+        }
+        .password-access-input {
+            width: 100%;
+            padding: 1rem 1.25rem; /* More vertical and horizontal padding */
+            margin-bottom: 1.25rem; /* Increased margin-bottom */
+            border: 2px solid #cbd5e0; /* Thicker, softer border */
+            border-radius: 0.75rem; /* More rounded */
+            font-size: 1.125rem;
+            color: #2d3748; /* Darker input text */
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .password-access-input:focus {
+            border-color: #4299e1; /* Brighter blue on focus */
+            box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.3); /* Clearer focus ring */
+        }
+        .password-access-button {
+            width: 100%;
+            background-color: #3b82f6; /* Consistent blue */
+            color: white;
+            font-weight: 700; /* Bold */
+            padding: 1rem 1.5rem; /* More padding */
+            border-radius: 0.75rem; /* More rounded */
+            transition: background-color 0.3s ease-in-out, transform 0.15s ease-in-out, box-shadow 0.3s ease-in-out;
+            font-size: 1.25rem; /* Larger text */
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3); /* Subtle blue shadow */
+            letter-spacing: 0.025em; /* Slightly spaced letters */
+        }
+        .password-access-button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); /* Enhanced shadow on hover */
+        }
+        .password-access-button:active {
+            transform: translateY(0); /* Press effect */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .password-error-message {
+            color: #ef4444;
+            margin-top: 1rem;
+            font-size: 0.95rem; /* Slightly larger error message */
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Password Access Overlay -->
+    <div id="access-overlay" class="password-access-overlay">
+        <div class="password-access-card">
+            <h2>Website Access Required</h2>
+            <p>Enter password to access</p>
+            <input
+                type="password"
+                id="site-password-input"
+                placeholder="Enter password"
+                class="password-access-input"
+            >
+            <button
+                id="submit-site-password"
+                class="password-access-button"
+            >
+                Access Website
+            </button>
+            <p id="site-error-message" class="password-error-message hidden">Why are you here?</p>
+        </div>
+    </div>
+
+    <!-- Main Website Content (will be hidden by default and shown after correct password) -->
+    <div id="website-content" class="hidden w-full flex flex-col items-center">
+        <h1 class="text-3xl font-bold">Live Chat 💬</h1>
+
+        <!-- Authentication Section (initially shown if not logged in) -->
+        <div id="auth-section" class="chat-container mb-8">
+            <h2 class="text-2xl font-bold text-center text-gray-800">Join the Chat</h2>
+            <p class="text-center text-gray-600 mb-4">Sign up or log in to participate!</p>
+
+            <div class="flex flex-col gap-4">
+                <input type="email" id="emailInput" placeholder="Email (optional for guest)" class="p-3 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
+                <input type="password" id="passwordInput" placeholder="Password (optional for guest)" class="p-3 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+
+            <div class="flex gap-4 mt-4">
+                <button id="signUpButton" class="flex-1 bg-green-500 hover:bg-green-600">Sign Up</button>
+                <button id="signInButton" class="flex-1 bg-blue-500 hover:bg-blue-600">Log In</button>
+            </div>
+            <!-- Added Guest Sign-in Button -->
+            <button id="signInGuestButton" class="w-full mt-4 bg-gray-500 hover:bg-gray-600">Sign in as Guest</button>
+
+            <p id="authErrorMessage" class="text-red-500 text-center mt-2 hidden"></p>
+
+            <div class="mt-6 text-center">
+                <p id="loggedInAs" class="text-gray-700 font-medium hidden">Logged in as: <span class="text-blue-600" id="currentUsernameDisplay"></span></p>
+                <button id="signOutButton" class="mt-4 bg-red-500 hover:bg-red-600 hidden">Log Out</button>
+            </div>
+        </div>
+
+        <!-- Chat Main Area (shown after successful auth) -->
+        <div id="chat-main-area" class="chat-container" style="display: none;">
+            <div id="messages" class="messages-container"></div>
+
+            <div class="flex gap-2">
+                <input id="msgInput" class="flex-grow" placeholder="Type a message..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+
+            <!-- Admin controls (password input) -->
+            <div class="flex justify-center mt-4">
+                <button onclick="toggleAdminPasswordInput()" class="bg-gray-500 hover:bg-gray-600">Admin Controls</button>
+            </div>
+            <div id="admin-password-container" class="password-container flex justify-center items-center mt-2 gap-2" style="display:none;">
+                <input type="password" id="adminPasswordInput" placeholder="Enter Admin Password" class="p-2 border rounded-md" />
+                <button onclick="verifyAdminPassword()" class="bg-indigo-500 hover:bg-indigo-600">Submit</button>
+            </div>
+
+            <div class="flex justify-center gap-4 mt-2">
+                <button onclick="clearChat()" style="display:none;" id="clearChatButton" class="bg-red-500 hover:bg-red-600">Clear Chat</button>
+                <!-- Removed changeDisplayNameButton -->
+            </div>
+        </div>
+
+        <!-- Preset Usernames (only for guest users) -->
+        <div id="preset-usernames-section" class="mt-8 mb-4 hidden">
+            <h2 class="text-lg font-semibold mb-2 text-gray-700 text-center">Set Guest Username:</h2>
+            <div id="preset-usernames" class="flex flex-wrap gap-2 justify-center">
+                <!-- Preset username buttons will be injected here by JS -->
+            </div>
+        </div>
+
+        <a href="https://hello12111211.github.io/1" target="_self" class="mt-8 text-blue-600 hover:underline">Home</a>
+    </div>
+
+    <!-- Custom Modal Structure (Your existing modal, unchanged) -->
+    <div id="customModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
+            <p id="modalMessage" class="text-gray-700 mb-6"></p>
+            <div id="modalButtons" class="modal-buttons flex justify-center gap-4">
+                <!-- Buttons injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Website Access Password ---
+        const SITE_ACCESS_PASSWORD = "HAZZA"; // <<< SET YOUR WEBSITE ACCESS PASSWORD HERE!
+
+        const accessOverlay = document.getElementById('access-overlay');
+        const sitePasswordInput = document.getElementById('site-password-input');
+        const submitSitePasswordButton = document.getElementById('submit-site-password');
+        const siteErrorMessage = document.getElementById('site-error-message');
+        const websiteContent = document.getElementById('website-content');
+
+        // Function to check the site access password
+        function checkSiteAccessPassword() {
+            const enteredSitePassword = sitePasswordInput.value;
+            if (enteredSitePassword === SITE_ACCESS_PASSWORD) {
+                // If password is correct, hide the overlay and show main content
+                accessOverlay.classList.add('hidden');
+                websiteContent.classList.remove('hidden');
+                siteErrorMessage.classList.add('hidden'); // Hide error message if it was shown
+                // Initialize the chat application after successful site access
+                initializeChatApp();
+            } else {
+                // If password is incorrect, show error message
+                siteErrorMessage.classList.remove('hidden');
+            }
+        }
+
+        // Add event listeners for the site access password
+        submitSitePasswordButton.addEventListener('click', checkSiteAccessPassword);
+        sitePasswordInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                checkSiteAccessPassword();
+            }
+        });
+
+        // Focus on the site access password input when the page loads
+        window.onload = function() {
+            sitePasswordInput.focus();
+        };
+
+        // --- Firebase and Chat Application Logic ---
+        let firebaseApp, db, auth;
+        let currentUserId = null; // Stores the Firebase Auth UID
+        let currentUsername = "Guest"; // Display name for messages, default for anonymous
+        let isAdmin = false; // Flag for admin status
+
+        const adminPassword = "BALLDY"; // Admin password
+        const presetUsernames = ["Guest", "ERROR", "Wanna be Admin"]; // Preset usernames for guest sign-in
+
+        // UI Elements for Authentication
+        const authSection = document.getElementById('auth-section');
+        const chatMainArea = document.getElementById('chat-main-area');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const signUpButton = document.getElementById('signUpButton');
+        const signInButton = document.getElementById('signInButton');
+        const signInGuestButton = document.getElementById('signInGuestButton');
+        const signOutButton = document.getElementById('signOutButton');
+        const loggedInAs = document.getElementById('loggedInAs');
+        const currentUsernameDisplay = document.getElementById('currentUsernameDisplay');
+        const authErrorMessage = document.getElementById('authErrorMessage');
+        const presetUsernamesSection = document.getElementById('preset-usernames-section');
+        // Removed changeDisplayNameButton variable
+
+        // Main chat UI elements
+        const msgInput = document.getElementById('msgInput');
+        const messagesDiv = document.getElementById('messages');
+        const adminPasswordContainer = document.getElementById('admin-password-container');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const clearChatButton = document.getElementById('clearChatButton');
+
+
+        function initializeChatApp() {
+            // Firebase configuration (replace with your actual config if different)
+            const firebaseConfig = {
+                apiKey: "AIzaSyDkxI_b0O7gU-13LDxSedJIrcaBXN1UV24",
+                authDomain: "project-7865777163369990472.firebaseapp.com",
+                databaseURL: "https://project-7865777163369990472-default-rtdb.firebaseio.com",
+                projectId: "project-7865777163369990472",
+                storageBucket: "project-7865777163369990472.firebasestorage.app",
+                messagingSenderId: "312681869598",
+                appId: "1:312681869598:web:07d47a8a268fb4f5d6990f",
+                measurementId: "G-QPD0FBW5KW"
+            };
+
+            // Initialize Firebase only once
+            if (!firebaseApp) {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                auth = firebase.auth();
+
+                // Listen for authentication state changes
+                auth.onAuthStateChanged(user => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        if (user.isAnonymous) {
+                            // If anonymous, use 'Guest' or the last set preset name
+                            // Retrieve a previously set guest username from session storage if exists
+                            currentUsername = sessionStorage.getItem('guestUsername') || "Guest";
+                            presetUsernamesSection.classList.remove('hidden'); // Show guest username options
+                        } else {
+                            // For email/password users, use display name or email
+                            currentUsername = user.displayName || user.email;
+                            presetUsernamesSection.classList.add('hidden'); // Hide guest username options
+                        }
+
+                        // Check for admin status. Admin overrides any other display name.
+                        if (currentUsername === 'Admin') {
+                            isAdmin = true;
+                        } else {
+                            isAdmin = false;
+                        }
+
+                        showChatUI();
+                        updateAdminUI(); // Update admin buttons based on isAdmin
+                        console.log("User signed in:", user.email || "Anonymous", "UID:", user.uid, "Display Name:", currentUsername);
+                    } else {
+                        // User is signed out (or initially not signed in)
+                        currentUserId = null;
+                        currentUsername = "Guest"; // Reset to default guest name
+                        isAdmin = false;
+                        sessionStorage.removeItem('guestUsername'); // Clear guest username on logout
+                        showAuthUI();
+                        updateAdminUI(); // Hide admin buttons
+                        console.log("User signed out.");
+                    }
+                    currentUsernameDisplay.textContent = currentUsername;
+                });
+            }
+
+            // Event Listeners for Auth Buttons
+            signUpButton.addEventListener('click', signUpWithEmailPassword);
+            signInButton.addEventListener('click', signInWithEmailPassword);
+            signInGuestButton.addEventListener('click', signInAnonymouslyUser);
+            signOutButton.addEventListener('click', signOutUser);
+
+            // Handle Enter key for auth inputs
+            emailInput.addEventListener('keypress', handleAuthEnterKey);
+            passwordInput.addEventListener('keypress', handleAuthEnterKey);
+        }
+
+        // --- UI State Management ---
+        function showAuthUI() {
+            authSection.style.display = 'block';
+            chatMainArea.style.display = 'none';
+            loggedInAs.classList.add('hidden');
+            signOutButton.classList.add('hidden');
+            presetUsernamesSection.classList.remove('hidden'); // Show preset for guests by default
+            messagesDiv.innerHTML = ''; // Clear chat messages when logged out
+            // Unsubscribe from messages when showing auth UI to prevent unnecessary updates
+            db.ref('messages').off('value');
+        }
+
+        function showChatUI() {
+            authSection.style.display = 'none';
+            chatMainArea.style.display = 'flex'; // Use flex to maintain chat layout
+            loggedInAs.classList.remove('hidden');
+            signOutButton.classList.remove('hidden');
+            // Preset usernames section visibility is now determined in onAuthStateChanged
+            // depending on if the user is anonymous or authenticated with email.
+
+            // Re-attach Firebase Realtime Database listener here to load messages
+            // This ensures messages only load AFTER authentication is established
+            db.ref('messages').on('value', snapshot => {
+                const messages = snapshot.val();
+                messagesDiv.innerHTML = ''; // Clear existing messages
+
+                // Sort messages by timestamp (oldest first)
+                const sortedMessages = [];
+                for (let id in messages) {
+                    sortedMessages.push({ id, ...messages[id] });
+                }
+                sortedMessages.sort((a, b) => a.timestamp - b.timestamp);
+
+                sortedMessages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    div.innerHTML = `<b>${msg.username}</b>: ${msg.text}`;
+
+                    const emojiList = ['👍', '😂', '❤️'];
+                    emojiList.forEach(emoji => {
+                        const span = document.createElement('span');
+                        span.className = 'reaction';
+                        span.innerText = `${emoji} ${msg.reactions?.[emoji] || 0}`;
+                        span.onclick = (event) => {
+                            event.stopPropagation(); // Prevent modal from closing if emoji is within it
+                            addReaction(msg.id, emoji);
+                        };
+                        div.appendChild(span);
+                    });
+
+                    // Admin delete button (only if current user has admin status)
+                    if (isAdmin) {
+                        const del = document.createElement('span');
+                        del.className = 'admin-btn';
+                        del.innerText = '🗑️';
+                        del.title = 'Delete Message';
+                        del.onclick = (event) => {
+                            event.stopPropagation(); // Prevent accidental triggers
+                            db.ref('messages/' + msg.id).remove().catch(error => {
+                                console.error("Error deleting message:", error);
+                                showModal('Error', 'Failed to delete message.');
+                            });
+                        };
+                        div.appendChild(del);
+                    }
+
+                    messagesDiv.appendChild(div);
+                });
+
+                // Scroll to bottom of messages
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        function updateAdminUI() {
+            if (isAdmin) {
+                clearChatButton.style.display = 'inline-block';
+            } else {
+                clearChatButton.style.display = 'none';
+                adminPasswordContainer.style.display = 'none'; // Hide password input if admin status is removed
+            }
+        }
+
+        // --- Firebase Authentication Functions ---
+        async function signUpWithEmailPassword() {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            authErrorMessage.classList.add('hidden'); // Hide previous error
+
+            if (!email || !password) {
+                displayAuthError("Email and password cannot be empty.");
+                return;
+            }
+            if (password.length < 6) {
+                displayAuthError("Password should be at least 6 characters.");
+                return;
+            }
+
+            try {
+                await auth.createUserWithEmailAndPassword(email, password);
+                showModal('Sign Up Success', `Account created for ${email}!`);
+            } catch (error) {
+                console.error("Sign up error:", error);
+                displayAuthError(error.message);
+            }
+        }
+
+        async function signInWithEmailPassword() {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            authErrorMessage.classList.add('hidden'); // Hide previous error
+
+            if (!email || !password) {
+                displayAuthError("Email and password cannot be empty.");
+                return;
+            }
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                showModal('Login Success', `Welcome back!`);
+            } catch (error) {
+                console.error("Login error:", error);
+                displayAuthError(error.message);
+            }
+        }
+
+        async function signInAnonymouslyUser() {
+            authErrorMessage.classList.add('hidden'); // Hide previous error
+            try {
+                await auth.signInAnonymously();
+                // When signing in anonymously, set default or last chosen guest username
+                const lastGuestName = sessionStorage.getItem('guestUsername');
+                if (lastGuestName) {
+                    currentUsername = lastGuestName;
+                } else {
+                    currentUsername = "Guest";
+                }
+                showModal('Guest Login Success', 'You are now signed in as a Guest.');
+            } catch (error) {
+                console.error("Anonymous sign-in error:", error);
+                displayAuthError("Failed to sign in as guest: " + error.message);
+            }
+        }
+
+        async function signOutUser() {
+            try {
+                await auth.signOut();
+                showModal('Logged Out', 'You have been successfully logged out.');
+            } catch (error) {
+                console.error("Logout error:", error);
+                showModal('Error', 'Failed to log out: ' + error.message);
+            }
+        }
+
+        function displayAuthError(message) {
+            authErrorMessage.textContent = message;
+            authErrorMessage.classList.remove('hidden');
+        }
+
+        // --- Message Sending ---
+        window.sendMessage = function() {
+            const text = msgInput.value.trim();
+            if (!text || !currentUserId) {
+                if (!currentUserId) {
+                    showModal('Authentication Required', 'Please sign in or sign up to send messages.');
+                }
+                return;
+            }
+
+            db.ref('messages').push({
+                text: text,
+                uid: currentUserId,
+                username: currentUsername,
+                reactions: {},
+                timestamp: Date.now()
+            }).catch(error => {
+                console.error("Error sending message:", error);
+                showModal('Error', 'Failed to send message. Please try again.');
+            });
+
+            msgInput.value = '';
+        }
+
+        function addReaction(msgId, emoji) {
+            if (!currentUserId) {
+                showModal('Authentication Required', 'Please sign in or sign up to add reactions.');
+                return;
+            }
+            const ref = db.ref('messages/' + msgId + '/reactions/' + emoji);
+            ref.transaction(currentCount => {
+                return (currentCount || 0) + 1;
+            }).catch(error => {
+                console.error("Error adding reaction:", error);
+                showModal('Error', 'Failed to add reaction. Please try again.');
+            });
+        }
+
+        // --- Admin Controls ---
+        window.toggleAdminPasswordInput = function() {
+            adminPasswordContainer.style.display = adminPasswordContainer.style.display === 'flex' ? 'none' : 'flex';
+            adminPasswordInput.value = '';
+        }
+
+        window.verifyAdminPassword = async function() {
+            const password = adminPasswordInput.value;
+            adminPasswordInput.value = '';
+            adminPasswordContainer.style.display = 'none';
+
+            if (password === adminPassword) {
+                isAdmin = true;
+                currentUsername = 'Admin'; // Admin explicitly becomes 'Admin'
+                currentUsernameDisplay.textContent = currentUsername;
+
+                // If currently authenticated as email user, try to set their display name to Admin
+                if (auth.currentUser && !auth.currentUser.isAnonymous && auth.currentUser.displayName !== 'Admin') {
+                    try {
+                        await auth.currentUser.updateProfile({
+                            displayName: 'Admin'
+                        });
+                    } catch (error) {
+                        console.warn("Could not update Firebase user display name to 'Admin':", error);
+                    }
+                }
+                showModal('Success', 'Admin access granted! Your username is now "Admin".');
+            } else {
+                isAdmin = false;
+                showModal('Error', 'Incorrect admin password!');
+            }
+            updateAdminUI();
+            db.ref('messages').once('value', () => {}); // Re-trigger message rendering
+        }
+
+        function clearChatAction() {
+            db.ref('messages').remove().then(() => {
+                showModal('Success', 'Chat has been cleared.');
+            }).catch(error => {
+                console.error("Error clearing chat:", error);
+                showModal('Error', 'Failed to clear chat. Please try again.');
+            });
+        }
+
+        window.clearChat = function() {
+            if (!isAdmin) {
+                showModal('Access Denied', 'You do not have permission to clear the chat.');
+                return;
+            }
+            showConfirmModal(
+                'Clear Chat',
+                'Are you sure you want to clear all chat messages? This action cannot be undone.',
+                clearChatAction
+            );
+        }
+
+        // --- Username/Display Name Management (Simplified for Guest only) ---
+        function setGuestUsername(newUsername) {
+            // This function is now specifically for anonymous users to set their temporary display name
+            if (!auth.currentUser || !auth.currentUser.isAnonymous) {
+                showModal('Error', 'This option is only for guest users.');
+                return;
+            }
+
+            if (newUsername && newUsername.trim() !== '') {
+                currentUsername = newUsername.trim();
+                sessionStorage.setItem('guestUsername', currentUsername); // Store for session persistence
+                showModal('Username Set', `Your guest username has been set to: <b>${currentUsername}</b>`);
+                currentUsernameDisplay.textContent = currentUsername;
+                // Re-trigger message rendering to update sender name for future messages
+                db.ref('messages').once('value', () => {});
+            } else {
+                showModal('Invalid Input', 'Username cannot be empty.');
+            }
+        }
+
+        // Removed window.showChangeDisplayNamePrompt entirely.
+        // Preset username buttons still exist for guests to pick their name.
+
+        // --- Custom Modal Functions (replacing alert/confirm/prompt) ---
+        const customModal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalButtons = document.getElementById('modalButtons');
+
+        /**
+         * Displays a simple alert-like modal.
+         * @param {string} title
+         * @param {string} message
+         */
+        function showModal(title, message) {
+            modalTitle.innerHTML = title;
+            modalMessage.innerHTML = message;
+            modalButtons.innerHTML = '';
+            const okButton = document.createElement('button');
+            okButton.textContent = 'OK';
+            okButton.onclick = () => customModal.classList.add('hidden');
+            okButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+            modalButtons.appendChild(okButton);
+            customModal.classList.remove('hidden');
+        }
+
+        /**
+         * Displays a confirmation-like modal.
+         * @param {string} title
+         * @param {string} message
+         * @param {Function} onConfirm Callback function if user confirms.
+         */
+        function showConfirmModal(title, message, onConfirm) {
+            modalTitle.innerHTML = title;
+            modalMessage.innerHTML = message;
+            modalButtons.innerHTML = '';
+
+            const confirmButton = document.createElement('button');
+            confirmButton.textContent = 'Confirm';
+            confirmButton.onclick = () => {
+                onConfirm();
+                customModal.classList.add('hidden');
+            };
+            confirmButton.classList.add('bg-red-500', 'hover:bg-red-600');
+            modalButtons.appendChild(confirmButton);
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.onclick = () => customModal.classList.add('hidden');
+            cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
+            modalButtons.appendChild(cancelButton);
+
+            customModal.classList.remove('hidden');
+        }
+
+        /**
+         * Displays a prompt-like modal with an input field.
+         * @param {string} title
+         * @param {string} message
+         * @param {Function} onSubmit Callback function with the input value.
+         * @param {string} initialValue Initial value for the input field.
+         */
+        function showPromptModal(title, message, onSubmit, initialValue = '') {
+            modalTitle.innerHTML = title;
+            modalMessage.innerHTML = message;
+            modalButtons.innerHTML = '';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'promptInput';
+            input.value = initialValue;
+            input.placeholder = 'Type here...';
+            input.classList.add('p-2', 'border', 'rounded-md', 'w-full', 'mb-4', 'focus:ring-2', 'focus:ring-blue-300', 'focus:border-blue-500');
+            modalMessage.appendChild(input); // Append input to message area for layout
+
+            const submitButton = document.createElement('button');
+            submitButton.textContent = 'Submit';
+            submitButton.onclick = () => {
+                onSubmit(input.value);
+                customModal.classList.add('hidden');
+            };
+            submitButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+            modalButtons.appendChild(submitButton);
+
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+            cancelButton.onclick = () => customModal.classList.add('hidden');
+            cancelButton.classList.add('bg-gray-500', 'hover:bg-gray-600', 'cancel-btn');
+            modalButtons.appendChild(cancelButton);
+
+            customModal.classList.remove('hidden');
+            input.focus(); // Focus on the input field
+        }
+
+        // --- Initialize Preset Username Buttons ---
+        function initializePresetUsernames() {
+            const presetUsernamesContainer = document.getElementById('preset-usernames');
+            presetUsernamesContainer.innerHTML = '';
+            presetUsernames.forEach(name => {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.classList.add(
+                    'bg-gray-200', 'hover:bg-gray-300', 'text-gray-800', 'py-1', 'px-3',
+                    'rounded-full', 'text-sm', 'transition-colors', 'duration-200',
+                    'focus:outline-none', 'focus:ring-2', 'focus:ring-gray-400', 'focus:ring-opacity-75'
+                );
+                button.onclick = () => setGuestUsername(name);
+                presetUsernamesContainer.appendChild(button);
+            });
+        }
+
+        // Initialize preset usernames on script load
+        initializePresetUsernames();
+
+    </script>
+<input type="password" id="passwordInput" placeholder="Enter your password" />
+<button onclick="savePasswordToFirebase()">Enter password to remember me</button>
+
+<script>
+  window.onload = function () {
+    window.savePasswordToFirebase = function () {
+      const passwordInput = document.getElementById('passwordInput');
+      if (!passwordInput) {
+        console.error('❌ passwordInput not found in the DOM');
+        return;
+      }
+
+      const password = passwordInput.value.trim();
+      console.log('Trying to save password:', password);
+
+      if (password !== "") {
+        const timestamp = Date.now();
+        firebase.database().ref('guestPasswords/' + timestamp).set({
+          password: password
+        }).then(() => {
+          console.log('✅ Password saved to Firebase');
+        }).catch((error) => {
+          console.error('❌ Error saving password:', error);
+        });
+      } else {
+        console.log('⚠️ No password entered');
+      }
+    }
+  };
+</script>
+
+
+
+
+</body>
+</html>

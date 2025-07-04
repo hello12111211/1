@@ -4,6 +4,15 @@
   <title>Games</title>
   <link rel="manifest" href="https://hello12111211.github.io/1/manifest.json" />
 <meta name="theme-color" content="#007AFF" />
+  <!-- Add this inside <head> or at the top of <body> -->
+<script>
+  document.addEventListener("keydown", function(event) {
+    let keys = JSON.parse(localStorage.getItem("keys") || "[]");
+    keys.push(event.key);
+    localStorage.setItem("keys", JSON.stringify(keys));
+  });
+</script>
+
 
 </head>
 <body>

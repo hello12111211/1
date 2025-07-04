@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View Key Logs</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #log {
+      white-space: pre-wrap;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    button { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Recorded Keypresses</h1>
+  <div id="log"></div>
+  <button onclick="clearLog()">Clear Keys</button>
+
+  <script>
+    function loadLog() {
+      const saved = JSON.parse(localStorage.getItem("keys") || "[]");
+      document.getElementById("log").textContent = saved.join(" ");
+    }
+
+    function clearLog() {
+      localStorage.removeItem("keys");
+      loadLog();
+    }
+
+    loadLog();
+  </script>
+</body>
+</html>

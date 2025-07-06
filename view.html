@@ -1,50 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>nothing going on here</title>
+  <title>Nothing going on here</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    #log {
-      white-space: pre-wrap;
-      margin-top: 10px;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    button { margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    select, button { margin-top: 10px; padding: 5px 10px; }
   </style>
 </head>
 <body>
   <h1>Recorded Keypresses</h1>
-  <div id="log">Loading...</div>
+
+  <label for="filter">Filter by page:</label>
+  <select id="filter">
+    <option value="all">All Pages</option>
+  </select>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Time</th>
+        <th>Page</th>
+      </tr>
+    </thead>
+    <tbody id="log"></tbody>
+  </table>
+
   <button onclick="clearLog()">Clear Keys</button>
 
   <script>
+    let allLogs = [];
+
     function loadLog() {
-      const logs = JSON.parse(localStorage.getItem("keyLogs") || "[]");
-      if (logs.length === 0) {
-        document.getElementById("log").textContent = "No keypresses recorded yet.";
+      allLogs = JSON.parse(localStorage.getItem("keyLogs") || "[]");
+      allLogs.sort((a, b) => new Date(b.time) - new Date(a.time)); // Newest first
+
+      // Fill dropdown with unique page URLs
+      const pages = [...new Set(allLogs.map(log => log.page))];
+      const filter = document.getElementById("filter");
+      filter.innerHTML = `<option value="all">All Pages</option>` + 
+        pages.map(url => `<option value="${url}">${url}</option>`).join("");
+
+      renderTable("all");
+    }
+
+    function renderTable(filterUrl) {
+      const logTable = document.getElementById("log");
+      const filtered = filterUrl === "all" ? allLogs : allLogs.filter(log => log.page === filterUrl);
+
+      if (filtered.length === 0) {
+        logTable.innerHTML = `<tr><td colspan="3">No keypresses recorded.</td></tr>`;
         return;
       }
 
-      const grouped = {};
-      for (const entry of logs) {
-        if (!grouped[entry.page]) grouped[entry.page] = [];
-        grouped[entry.page].push(entry);
-      }
-
-      let output = "";
-      for (const [page, entries] of Object.entries(grouped)) {
-        output += `From: ${page}\n`;
-        output += entries.map(e => `${e.key} @ ${e.time}`).join("\n") + "\n\n";
-      }
-
-      document.getElementById("log").textContent = output;
+      logTable.innerHTML = filtered.map(log => `
+        <tr>
+          <td>${log.key}</td>
+          <td>${new Date(log.time).toLocaleString()}</td>
+          <td>${log.page}</td>
+        </tr>
+      `).join("");
     }
 
     function clearLog() {
-      localStorage.removeItem("keyLogs");
-      loadLog();
+      if (confirm("Are you sure you want to delete all recorded keys?")) {
+        localStorage.removeItem("keyLogs");
+        loadLog();
+      }
     }
+
+    document.getElementById("filter").addEventListener("change", function() {
+      renderTable(this.value);
+    });
 
     loadLog();
   </script>

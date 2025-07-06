@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Nothing going on</title>
+  <title>nothing going on here</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     #log {
@@ -15,17 +15,34 @@
 </head>
 <body>
   <h1>Recorded Keypresses</h1>
-  <div id="log"></div>
+  <div id="log">Loading...</div>
   <button onclick="clearLog()">Clear Keys</button>
 
   <script>
     function loadLog() {
-      const saved = JSON.parse(localStorage.getItem("keys") || "[]");
-      document.getElementById("log").textContent = saved.join(" ");
+      const logs = JSON.parse(localStorage.getItem("keyLogs") || "[]");
+      if (logs.length === 0) {
+        document.getElementById("log").textContent = "No keypresses recorded yet.";
+        return;
+      }
+
+      const grouped = {};
+      for (const entry of logs) {
+        if (!grouped[entry.page]) grouped[entry.page] = [];
+        grouped[entry.page].push(entry);
+      }
+
+      let output = "";
+      for (const [page, entries] of Object.entries(grouped)) {
+        output += `From: ${page}\n`;
+        output += entries.map(e => `${e.key} @ ${e.time}`).join("\n") + "\n\n";
+      }
+
+      document.getElementById("log").textContent = output;
     }
 
     function clearLog() {
-      localStorage.removeItem("keys");
+      localStorage.removeItem("keyLogs");
       loadLog();
     }
 

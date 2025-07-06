@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Nothing going on here</title>
+  <title>View Key Logs</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -35,7 +35,7 @@
 
     function loadLog() {
       allLogs = JSON.parse(localStorage.getItem("keyLogs") || "[]");
-      allLogs.sort((a, b) => new Date(b.time) - new Date(a.time)); // Newest first
+      allLogs.sort((a, b) => new Date(a.time) - new Date(b.time)); // Oldest first
 
       // Fill dropdown with unique page URLs
       const pages = [...new Set(allLogs.map(log => log.page))];

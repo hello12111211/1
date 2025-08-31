@@ -192,13 +192,14 @@
       }
     };
 
-    // === Simple Chat ===
+    // === Simple Chat with Username ===
     const chatMessages = document.getElementById("chatMessages");
     const chatInput = document.getElementById("chatInput");
     document.getElementById("sendBtn").onclick = () => {
       const msg = chatInput.value;
+      const user = document.getElementById("username").value.trim() || "Anon";
       if (!msg || !roomId) return;
-      db.ref("chats/" + roomId).push({ user: "anon", text: msg });
+      db.ref("chats/" + roomId).push({ user, text: msg });
       chatInput.value = "";
     };
     db.ref("chats").on("child_added", snap => {

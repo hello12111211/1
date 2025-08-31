@@ -29,6 +29,7 @@
     <button id="toggleAudio">Mute</button>
     <button id="toggleVideo">Stop Video</button>
     <button id="switchCamera">Switch Camera</button>
+    <button id="changeNameBtn">Change Name</button>
   </div>
 
   <div id="videos"></div>
@@ -62,6 +63,7 @@
     let username;
     let roomId;
     let peers = {}; // store { peerId: { pc, videoEl } }
+    let myUserRef;
 
     // === Utility ===
     function createVideoTile(id, labelText, stream) {
@@ -76,7 +78,7 @@
       tile.appendChild(video); tile.appendChild(label);
       tile.id = "tile-" + id;
       document.getElementById("videos").appendChild(tile);
-      return { video, tile };
+      return { video, tile, label };
     }
 
     function removeVideoTile(id) {
@@ -115,9 +117,9 @@
       }
 
       await startLocalStream();
-      const userRef = db.ref("rooms/"+roomId+"/users").push();
-      const myId = userRef.key;
-      await userRef.set({ name: username });
+      myUserRef = db.ref("rooms/"+roomId+"/users").push();
+      const myId = myUserRef.key;
+      await myUserRef.set({ name: username });
 
       // Listen for other users joining
       db.ref("rooms/"+roomId+"/users").on("child_added", snap => {
@@ -128,14 +130,14 @@
 
       // Cleanup on leave
       window.addEventListener("beforeunload", () => {
-        userRef.remove();
+        if (myUserRef) myUserRef.remove();
       });
     }
 
     async function startPeerConnection(peerId, peerName, myId) {
       const pc = new RTCPeerConnection();
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      const { video } = createVideoTile(peerId, peerName);
+      const { video, label } = createVideoTile(peerId, peerName);
 
       pc.ontrack = e => {
         video.srcObject = e.streams[0];
@@ -148,7 +150,7 @@
         }
       };
 
-      peers[peerId] = { pc, videoEl: video };
+      peers[peerId] = { pc, videoEl: video, label };
 
       // Offer
       const offer = await pc.createOffer();
@@ -201,6 +203,16 @@
         const sender = peers[peerId].pc.getSenders().find(s => s.track.kind === "video");
         if (sender) sender.replaceTrack(newTrack);
       }
+    };
+
+    // === Change Name ===
+    document.getElementById("changeNameBtn").onclick = async () => {
+      const newName = prompt("Enter new name:");
+      if (!newName || !roomId || !myUserRef) return;
+      username = newName;
+      await myUserRef.update({ name: newName });
+      const localLabel = document.querySelector("#tile-local .label");
+      if (localLabel) localLabel.textContent = newName;
     };
 
     // === Chat ===

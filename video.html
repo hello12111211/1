@@ -1,27 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Mini Teams/Zoom Clone</title>
+  <meta charset="utf-8" />
+  <title>Mini Teams/Zoom — Mesh + Host Controls</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
-    header { background: #464eb8; color: white; padding: 1rem; text-align: center; }
-    .controls { padding: 10px; text-align: center; }
-    .controls input, .controls button { margin: 5px; padding: 8px; border-radius: 6px; }
-    #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; justify-content: center; }
-    .videoTile { position: relative; background: white; border-radius: 10px; padding: 5px; text-align: center; }
-    video { width: 250px; height: 180px; background: black; border-radius: 10px; }
-    .label { background: rgba(0,0,0,0.6); color: white;
-             padding: 2px 6px; border-radius: 4px; font-size: 14px; margin-top: 5px; display: inline-block; }
-    .hostBadge { color: gold; font-weight: bold; font-size: 12px; display: block; margin-top: 2px; }
-    .hostControls { margin-top: 5px; }
-    .hostControls button { margin: 2px; padding: 4px 8px; font-size: 12px; }
-    .chat { background: white; border-top: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    #chatInput { width: 70%; padding: 8px; }
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3f4f6}
+    header{background:#374151;color:#fff;padding:12px 16px;text-align:center}
+    .controls{padding:10px;text-align:center;background:#fff;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+    .controls input{padding:8px;border-radius:6px;border:1px solid #d1d5db}
+    .controls button{padding:8px 12px;border-radius:6px;border:0;background:#2563eb;color:#fff;cursor:pointer}
+    #videos{display:flex;flex-wrap:wrap;gap:12px;padding:12px;justify-content:center}
+    .videoTile{width:260px;background:#fff;border-radius:10px;padding:8px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    .videoTile video{width:100%;height:170px;border-radius:8px;background:#000}
+    .label{margin-top:6px;font-weight:600}
+    .hostBadge{display:block;color:#b45309;font-weight:700;font-size:12px}
+    .hostControls{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+    .hostControls button{padding:6px 8px;font-size:12px;background:#ef4444}
+    .chat{background:#fff;padding:12px;margin:12px;border-radius:8px;max-width:1000px;margin-left:auto;margin-right:auto}
+    #chatMessages{height:140px;overflow:auto;border:1px solid #e5e7eb;padding:8px;border-radius:6px;background:#fafafa}
+    #chatRow{display:flex;gap:8px;margin-top:8px}
+    #chatRow input{flex:1;padding:8px;border-radius:6px;border:1px solid #d1d5db}
+    #log{max-width:1000px;margin:8px auto;font-size:12px;color:#374151}
   </style>
 </head>
 <body>
-  <header><h1>Mini Teams/Zoom Clone</h1></header>
+  <header><h2>Mini Teams/Zoom — Mesh + Host Controls</h2></header>
 
   <div class="controls">
     <input id="username" placeholder="Your name (optional)">
@@ -39,315 +43,488 @@
 
   <div class="chat">
     <div id="chatMessages"></div>
-    <input id="chatInput" placeholder="Type message...">
-    <button id="sendBtn">Send</button>
+    <div id="chatRow">
+      <input id="chatInput" placeholder="Type message...">
+      <button id="sendBtn">Send</button>
+    </div>
   </div>
 
+  <div id="log"></div>
+
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
   <script>
-    // === Firebase config ===
-    const firebaseConfig = {
-      apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
-      authDomain: "meeting-71831.firebaseapp.com",
-      databaseURL: "https://meeting-71831-default-rtdb.firebaseio.com",
-      projectId: "meeting-71831",
-      storageBucket: "meeting-71831.appspot.com",
-      messagingSenderId: "48359638047",
-      appId: "1:48359638047:web:e72e4cc35b59a8f85c812a"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    firebase.auth().signInAnonymously();
+  /***************** CONFIG *****************/
+  const firebaseConfig = {
+    apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
+    authDomain: "meeting-71831.firebaseapp.com",
+    databaseURL: "https://meeting-71831-default-rtdb.firebaseio.com",
+    projectId: "meeting-71831",
+    storageBucket: "meeting-71831.appspot.com",
+    messagingSenderId: "48359638047",
+    appId: "1:48359638047:web:e72e4cc35b59a8f85c812a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  firebase.auth().signInAnonymously().catch(()=>{ /* ignore for demo */ });
 
-    // === Globals ===
-    let localStream, currentFacingMode = "user";
-    let username;
-    let roomId;
-    let peers = {};
-    let myUserRef;
-    let myId;
-    let isHost = false;
-    let originalHostId = null; // track creator
+  /***************** STATE *****************/
+  let localStream = null;
+  let currentFacingMode = "user";
+  let username = null;
+  let roomId = null;
+  let myUserRef = null;
+  let myId = null;
+  let isHost = false;
+  let originalHostId = null;
+  const peers = {}; // peers[peerId] = { pc, videoEl, labelEl, hostBadgeEl }
 
-    // === Video Tile ===
-    function createVideoTile(id, labelText, stream, isSelf, peerId, isHostUser) {
-      const tile = document.createElement("div");
-      tile.className = "videoTile";
-      const video = document.createElement("video");
-      video.autoplay = true; video.playsInline = true;
-      if (isSelf) video.muted = true;
-      if (stream) video.srcObject = stream;
-      const label = document.createElement("div");
-      label.className = "label"; label.textContent = labelText;
+  const logEl = document.getElementById('log');
+  function log(...a){ logEl.innerText += a.join(' ') + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(...a) }
 
-      const hostBadge = document.createElement("span");
-      hostBadge.className = "hostBadge";
-      hostBadge.textContent = isHostUser ? "🏆 Host" : "";
-      label.appendChild(hostBadge);
-
-      tile.appendChild(video); tile.appendChild(label);
-      tile.id = "tile-" + id;
-
-      addHostControls(tile, isSelf, peerId);
-
-      document.getElementById("videos").appendChild(tile);
-      return { video, tile, label, hostBadge };
-    }
-
-    function addHostControls(tile, isSelf, peerId) {
-      const controls = tile.querySelector(".hostControls");
-      if (controls) controls.remove();
-      if (!isHost || isSelf) return;
-
-      // don’t let new host kick original host
-      if (peerId === originalHostId) return;
-
-      const hostControls = document.createElement("div");
-      hostControls.className = "hostControls";
-
-      const kickBtn = document.createElement("button");
-      kickBtn.textContent = "Kick";
-      kickBtn.onclick = () => {
-        db.ref("rooms/"+roomId+"/users/"+peerId).remove();
-      };
-      hostControls.appendChild(kickBtn);
-
-      const muteBtn = document.createElement("button");
-      muteBtn.textContent = "Mute";
-      muteBtn.onclick = () => {
-        db.ref("rooms/"+roomId+"/users/"+peerId).update({ forceMute: true });
-      };
-      hostControls.appendChild(muteBtn);
-
-      const stopVidBtn = document.createElement("button");
-      stopVidBtn.textContent = "Stop Video";
-      stopVidBtn.onclick = () => {
-        db.ref("rooms/"+roomId+"/users/"+peerId).update({ forceVideoOff: true });
-      };
-      hostControls.appendChild(stopVidBtn);
-
-      const makeHostBtn = document.createElement("button");
-      makeHostBtn.textContent = "Make Host";
-      makeHostBtn.onclick = () => {
-        db.ref("rooms/"+roomId+"/users").once("value").then(snap => {
-          snap.forEach(child => child.ref.update({ host: false }));
-          db.ref("rooms/"+roomId+"/users/"+peerId).update({ host: true });
-        });
-      };
-      hostControls.appendChild(makeHostBtn);
-
-      tile.appendChild(hostControls);
-    }
-
-    function removeVideoTile(id) {
-      const el = document.getElementById("tile-" + id);
-      if (el) el.remove();
-    }
-
-    // === Local Stream ===
-    async function startLocalStream() {
-      if (localStream) return;
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode }, audio: true
-      });
-      createVideoTile("local", username, localStream, true, myId, isHost);
-    }
-
-    // === Room ===
-    async function createRoom() {
-      roomId = Math.random().toString(36).substr(2,6).toUpperCase();
-      document.getElementById("roomId").value = roomId;
-      await joinRoom(true);
-    }
-
-    async function joinRoom(created = false) {
-      if (!roomId) roomId = document.getElementById("roomId").value.trim();
-      if (!roomId) return alert("Enter room ID");
-
-      let nameInput = document.getElementById("username").value.trim();
-      if (nameInput) {
-        username = nameInput;
-      } else {
-        const snap = await db.ref("rooms/"+roomId+"/users").get();
-        const count = snap.exists() ? Object.keys(snap.val()).length+1 : 1;
-        username = "User" + count;
+  /***************** UI helpers *****************/
+  function createVideoTile(id, labelText, stream, isSelf=false, peerId=null, isHostUser=false) {
+    // if exists, update name and host badge instead
+    const existing = document.getElementById('tile-'+id);
+    if (existing) {
+      const lbl = existing.querySelector('.labelName');
+      if (lbl) lbl.textContent = labelText;
+      const badge = existing.querySelector('.hostBadge');
+      if (badge) badge.textContent = isHostUser ? '🏆 Host' : '';
+      if (stream) {
+        const v = existing.querySelector('video'); v.srcObject = stream;
       }
-
-      const snap = await db.ref("rooms/"+roomId+"/users").get();
-      isHost = created || !snap.exists();
-
-      myUserRef = db.ref("rooms/"+roomId+"/users").push();
-      myId = myUserRef.key;
-      if (isHost && !originalHostId) originalHostId = myId;
-
-      await myUserRef.set({ name: username, host: isHost, original: isHost });
-
-      await startLocalStream();
-
-      db.ref("rooms/"+roomId+"/users").on("child_added", snap => {
-        const peerId = snap.key, data = snap.val();
-        if (peerId === myId) return;
-        if (!peers[peerId]) startPeerConnection(peerId, data.name, myId, data.host);
-      });
-
-      window.addEventListener("beforeunload", () => {
-        if (myUserRef) myUserRef.remove();
-      });
-
-      db.ref("rooms/"+roomId+"/users").on("child_changed", snap => {
-        if (snap.key === myId) {
-          isHost = snap.val().host;
-        }
-        updateAllHostControls();
-        updateHostBadges();
-      });
-
-      myUserRef.on("value", snap => {
-        const data = snap.val();
-        if (!data) { 
-          alert("You were removed from the room");
-          location.reload();
-        }
-        if (data.forceMute && localStream) {
-          localStream.getAudioTracks()[0].enabled = false;
-        }
-        if (data.forceVideoOff && localStream) {
-          localStream.getVideoTracks()[0].enabled = false;
-        }
-      });
-
-      if (myId === originalHostId) {
-        // add reclaim button always for original host
-        const btn = document.createElement("button");
-        btn.textContent = "Reclaim Host";
-        btn.onclick = () => {
-          db.ref("rooms/"+roomId+"/users").once("value").then(snap => {
-            snap.forEach(child => child.ref.update({ host: false }));
-            myUserRef.update({ host: true });
-          });
-        };
-        document.querySelector(".controls").appendChild(btn);
-      }
-    }
-
-    function updateAllHostControls() {
-      for (const peerId in peers) {
-        const tile = peers[peerId].videoEl.closest(".videoTile");
-        addHostControls(tile, false, peerId);
-      }
-    }
-
-    function updateHostBadges() {
-      db.ref("rooms/"+roomId+"/users").once("value").then(snap => {
-        snap.forEach(child => {
-          const tile = document.getElementById("tile-" + child.key);
-          if (tile) {
-            const badge = tile.querySelector(".hostBadge");
-            badge.textContent = child.val().host ? "🏆 Host" : "";
-          }
-        });
-        if (document.getElementById("tile-local")) {
-          const badge = document.querySelector("#tile-local .hostBadge");
-          if (badge) badge.textContent = isHost ? "🏆 Host" : "";
-        }
-      });
-    }
-
-    async function startPeerConnection(peerId, peerName, myId, isHostUser) {
-      const pc = new RTCPeerConnection();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      const { video, label } = createVideoTile(peerId, peerName, null, false, peerId, isHostUser);
-
-      pc.ontrack = e => { video.srcObject = e.streams[0]; };
-
-      pc.onicecandidate = e => {
-        if (e.candidate) {
-          db.ref(`rooms/${roomId}/signals/${peerId}/${myId}/candidates`).push(e.candidate.toJSON());
-        }
+      return {
+        videoEl: existing.querySelector('video'),
+        labelEl: existing.querySelector('.labelName'),
+        hostBadgeEl: existing.querySelector('.hostBadge')
       };
-
-      peers[peerId] = { pc, videoEl: video, label };
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      db.ref(`rooms/${roomId}/signals/${peerId}/${myId}/offer`).set(offer);
-
-      db.ref(`rooms/${roomId}/signals/${myId}/${peerId}/answer`).on("value", async snap => {
-        if (snap.exists() && !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
-        }
-      });
-
-      db.ref(`rooms/${roomId}/signals/${myId}/${peerId}/candidates`).on("child_added", snap => {
-        pc.addIceCandidate(new RTCIceCandidate(snap.val()));
-      });
     }
 
-    // === Controls ===
-    document.getElementById("createBtn").onclick = createRoom;
-    document.getElementById("joinBtn").onclick = () => joinRoom(false);
-    document.getElementById("leaveBtn").onclick = () => location.reload();
+    const tile = document.createElement('div');
+    tile.className = 'videoTile';
+    tile.id = 'tile-' + id;
 
-    document.getElementById("toggleAudio").onclick = () => {
-      if (!localStream) return;
-      const track = localStream.getAudioTracks()[0];
-      track.enabled = !track.enabled;
-    };
-    document.getElementById("toggleVideo").onclick = () => {
-      if (!localStream) return;
-      const track = localStream.getVideoTracks()[0];
-      track.enabled = !track.enabled;
+    const video = document.createElement('video');
+    video.autoplay = true; video.playsInline = true;
+    if (isSelf) video.muted = true;
+    if (stream) video.srcObject = stream;
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'labelName';
+    nameSpan.textContent = labelText;
+    const hostBadge = document.createElement('span');
+    hostBadge.className = 'hostBadge';
+    hostBadge.textContent = isHostUser ? '🏆 Host' : '';
+
+    label.appendChild(nameSpan);
+    label.appendChild(hostBadge);
+
+    tile.appendChild(video);
+    tile.appendChild(label);
+    document.getElementById('videos').appendChild(tile);
+
+    return { videoEl: video, labelEl: nameSpan, hostBadgeEl: hostBadge, tileEl: tile };
+  }
+
+  function removeVideoTile(id) {
+    const el = document.getElementById('tile-'+id);
+    if (el) el.remove();
+  }
+
+  function addHostControlsToTile(tileEl, peerId, isSelf, peerIsOriginalHost) {
+    // remove old controls
+    const existing = tileEl.querySelector('.hostControls');
+    if (existing) existing.remove();
+    if (!isHost || isSelf) return;
+
+    // new host should not be able to kick original host
+    if (peerId === originalHostId) return;
+
+    const controls = document.createElement('div');
+    controls.className = 'hostControls';
+
+    const kickBtn = document.createElement('button'); kickBtn.textContent='Kick';
+    kickBtn.onclick = ()=> db.ref(`rooms/${roomId}/users/${peerId}`).remove();
+    const muteBtn = document.createElement('button'); muteBtn.textContent='Mute';
+    muteBtn.onclick = ()=> db.ref(`rooms/${roomId}/users/${peerId}`).update({ forceMute: true });
+    const stopBtn = document.createElement('button'); stopBtn.textContent='Stop Video';
+    stopBtn.onclick = ()=> db.ref(`rooms/${roomId}/users/${peerId}`).update({ forceVideoOff: true });
+    const makeHostBtn = document.createElement('button'); makeHostBtn.textContent='Make Host';
+    makeHostBtn.onclick = async () => {
+      // set all host:false, then set this true
+      const snap = await db.ref(`rooms/${roomId}/users`).get();
+      snap.forEach(child=> child.ref.update({ host:false }));
+      db.ref(`rooms/${roomId}/users/${peerId}`).update({ host:true });
     };
 
-    document.getElementById("switchCamera").onclick = async () => {
-      if (!localStream) return;
-      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode }, audio: true
-      });
-      const newTrack = newStream.getVideoTracks()[0];
-      const oldTrack = localStream.getVideoTracks()[0];
-      localStream.removeTrack(oldTrack);
-      oldTrack.stop();
-      localStream.addTrack(newTrack);
-      const localTile = document.querySelector("#tile-local video");
-      localTile.srcObject = localStream;
-      for (const peerId in peers) {
-        const sender = peers[peerId].pc.getSenders().find(s => s.track.kind === "video");
-        if (sender) sender.replaceTrack(newTrack);
+    controls.appendChild(kickBtn);
+    controls.appendChild(muteBtn);
+    controls.appendChild(stopBtn);
+    controls.appendChild(makeHostBtn);
+    tileEl.appendChild(controls);
+  }
+
+  /***************** Local media *****************/
+  async function startLocalStream() {
+    if (localStream) return;
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: currentFacingMode }, audio:true });
+      createVideoTile('local', username || 'Me', localStream, true, myId, isHost);
+      log('Local stream started');
+    } catch(e) {
+      log('getUserMedia failed', e);
+      alert('Camera/microphone access is required. Check permissions.');
+    }
+  }
+
+  /***************** Signaling helpers *****************/
+  // We'll use paths:
+  // signals/{roomId}/offers/{to}/{from} -> offer object
+  // signals/{roomId}/answers/{to}/{from} -> answer object
+  // signals/{roomId}/candidates/{to}/{from}/{pushId} -> candidate objects
+
+  function offerPath(to, from){ return `signals/${roomId}/offers/${to}/${from}` }
+  function answerPath(to, from){ return `signals/${roomId}/answers/${to}/${from}` }
+  function candPath(to, from){ return `signals/${roomId}/candidates/${to}/${from}` }
+
+  async function ensurePeer(pc, peerId) {
+    if (peers[peerId] && peers[peerId].pc) return peers[peerId].pc;
+    const pc = new RTCPeerConnection();
+
+    // add local tracks
+    if (localStream) localStream.getTracks().forEach(t=> pc.addTrack(t, localStream));
+
+    // create UI tile
+    const tile = createVideoTile(peerId, 'Connecting...', null, false, peerId, false);
+    peers[peerId] = { pc, videoEl: tile.videoEl, labelEl: tile.labelEl, hostBadgeEl: tile.hostBadgeEl, tileEl: tile.tileEl };
+
+    pc.ontrack = e => {
+      // set remote stream when received
+      peers[peerId].videoEl.srcObject = e.streams[0];
+    };
+
+    pc.onicecandidate = e => {
+      if (!e.candidate) return;
+      // push candidate to path addressed to peerId (so peerId will read from candidates/{peerId}/{myId})
+      db.ref(candPath(peerId, myId)).push(e.candidate.toJSON());
+    };
+
+    return pc;
+  }
+
+  // When an offer arrives to me from 'fromId'
+  function listenForOffers() {
+    const myOffersRef = db.ref(`signals/${roomId}/offers/${myId}`);
+    myOffersRef.on('child_added', async snap => {
+      const fromId = snap.key;
+      const offer = snap.val();
+      log('Offer received from', fromId);
+      const pc = await ensurePeer(fromId);
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        // write answer to answers/{fromId}/{myId}
+        await db.ref(answerPath(fromId, myId)).set(answer);
+        log('Answered offer from', fromId);
+      } catch(err){ log('Error handling offer',err) }
+      // remove the offer (cleanup)
+      snap.ref.remove().catch(()=>{});
+    });
+  }
+
+  // When an answer arrives to me from 'fromId'
+  function listenForAnswers() {
+    const myAnswersRef = db.ref(`signals/${roomId}/answers/${myId}`);
+    myAnswersRef.on('child_added', async snap => {
+      const fromId = snap.key;
+      const answer = snap.val();
+      log('Answer received from', fromId);
+      const entry = peers[fromId];
+      if (entry && entry.pc) {
+        try {
+          await entry.pc.setRemoteDescription(new RTCSessionDescription(answer));
+        } catch(e){ log('setRemoteDescription(answer) failed', e) }
       }
-    };
+      snap.ref.remove().catch(()=>{});
+    });
+  }
 
-    document.getElementById("changeNameBtn").onclick = async () => {
-      const newName = prompt("Enter new name:");
-      if (!newName || !roomId || !myUserRef) return;
-      username = newName;
-      await myUserRef.update({ name: newName });
-      const localLabel = document.querySelector("#tile-local .label");
-      if (localLabel) localLabel.childNodes[0].textContent = newName;
-    };
-
-    // === Chat ===
-    const chatMessages = document.getElementById("chatMessages");
-    document.getElementById("sendBtn").onclick = () => {
-      const msg = document.getElementById("chatInput").value.trim();
-      if (!msg || !roomId) return;
-      db.ref("chats/"+roomId).push({ user: username, text: msg });
-      document.getElementById("chatInput").value = "";
-    };
-
-    db.ref("chats").on("child_added", snap => {
-      if (snap.key !== roomId) return;
-      snap.ref.on("child_added", msgSnap => {
-        const msg = msgSnap.val();
-        const div = document.createElement("div");
-        div.textContent = msg.user + ": " + msg.text;
-        chatMessages.appendChild(div);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+  // Listen for candidates addressed to me (from each peer)
+  function listenForCandidates() {
+    const myCandsRef = db.ref(`signals/${roomId}/candidates/${myId}`);
+    myCandsRef.on('child_added', snap => {
+      const fromId = snap.key;
+      const pushRef = snap.ref;
+      // each child under this will be candidate entries (push IDs)
+      pushRef.on('child_added', async cSnap => {
+        const cand = cSnap.val();
+        const entry = peers[fromId];
+        if (entry && entry.pc) {
+          try { await entry.pc.addIceCandidate(new RTCIceCandidate(cand)); } catch(e){ log('addIce failed', e) }
+        }
       });
     });
+  }
+
+  // Create offer to peerId (deterministic initiator: smaller id initiates)
+  async function maybeStartOffer(peerId) {
+    if (peerId === myId) return;
+    // if we already have pc and have local description set, skip
+    const entry = peers[peerId];
+    if (entry && entry.pc && entry.pc.localDescription) return;
+    // decide initiator by lexicographic IDs
+    if (myId < peerId) {
+      const pc = await ensurePeer(peerId);
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        // write offer to offers/{peerId}/{myId} (addressed to peerId)
+        await db.ref(offerPath(peerId, myId)).set(offer);
+        log('Sent offer to', peerId);
+      } catch(e){ log('createOffer failed', e) }
+    } else {
+      // not initiator; wait for incoming offer
+      log('Waiting for offer from', peerId);
+    }
+  }
+
+  /***************** Room / users management *****************/
+  async function createRoom() {
+    roomId = Math.random().toString(36).substr(2,6).toUpperCase();
+    document.getElementById('roomId').value = roomId;
+    // mark room meta with originalHost when creating
+    await db.ref(`rooms/${roomId}/meta`).set({ createdAt: Date.now() });
+    await joinRoom(true);
+  }
+
+  async function joinRoom(created=false) {
+    roomId = roomId || document.getElementById('roomId').value.trim();
+    if (!roomId) return alert('Enter or create a room id');
+
+    // pick username (or default UserN)
+    const nameInput = document.getElementById('username').value.trim();
+    if (nameInput) username = nameInput;
+    else {
+      const snap = await db.ref(`rooms/${roomId}/users`).get();
+      const count = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
+      username = 'User' + count;
+      document.getElementById('username').value = username;
+    }
+
+    // check meta for originalHost
+    const metaSnap = await db.ref(`rooms/${roomId}/meta`).get();
+    const createdByMe = created || !metaSnap.exists();
+    if (createdByMe) {
+      // set meta.originalHost after we create user ref
+      // but indicate we are host
+      isHost = true;
+    }
+
+    // create user entry
+    myUserRef = db.ref(`rooms/${roomId}/users`).push();
+    myId = myUserRef.key;
+    if (createdByMe) {
+      await db.ref(`rooms/${roomId}/meta`).update({ originalHostId: myId });
+      originalHostId = myId;
+    } else {
+      // read originalHostId
+      const m = await db.ref(`rooms/${roomId}/meta/originalHostId`).get();
+      originalHostId = m.exists() ? m.val() : null;
+    }
+    // set my user data
+    await myUserRef.set({ name: username, host: isHost || false, original: (originalHostId===myId) });
+
+    // start local media
+    await startLocalStream();
+
+    // listen to existing users and start mesh
+    db.ref(`rooms/${roomId}/users`).on('child_added', async snap => {
+      const peerId = snap.key;
+      const data = snap.val();
+      if (peerId === myId) return; // skip self
+      // create tile with name + host badge
+      createVideoTile(peerId, data.name, null, false, peerId, !!data.host);
+      // ensure peer connection exists; maybe start offer
+      await maybeStartOffer(peerId);
+      // watch for changes to user (name/host)
+    });
+
+    // when someone leaves
+    db.ref(`rooms/${roomId}/users`).on('child_removed', snap => {
+      const pid = snap.key;
+      // close pc
+      if (peers[pid] && peers[pid].pc) {
+        try { peers[pid].pc.close(); } catch(e){}
+        delete peers[pid];
+      }
+      removeVideoTile(pid);
+    });
+
+    // watch for user changes (name/host flags)
+    db.ref(`rooms/${roomId}/users`).on('child_changed', snap => {
+      const pid = snap.key; const d = snap.val();
+      if (pid === myId) {
+        isHost = !!d.host;
+      }
+      // update tile name and host badge
+      createVideoTile(pid, d.name, null, pid===myId, pid, !!d.host);
+      // update host controls (host gets controls on others)
+      updateAllHostControls();
+    });
+
+    // Setup listeners for offers/answers/candidates addressed to me
+    listenForOffers();
+    listenForAnswers();
+    listenForCandidates();
+
+    // Also, when any user appears, decide initiator based on ids:
+    // We also repeatedly check existing users to maybe start offers
+    const snapNow = await db.ref(`rooms/${roomId}/users`).get();
+    if (snapNow.exists()) {
+      const ids = Object.keys(snapNow.val());
+      for (const pid of ids) {
+        if (pid !== myId) await maybeStartOffer(pid);
+      }
+    }
+
+    // react to being kicked/muted/stopped
+    myUserRef.on('value', snap => {
+      const d = snap.val();
+      if (!d) {
+        alert('You were removed from the room');
+        location.reload();
+      } else {
+        if (d.forceMute && localStream) localStream.getAudioTracks().forEach(t=> t.enabled = false);
+        if (d.forceVideoOff && localStream) localStream.getVideoTracks().forEach(t=> t.enabled = false);
+      }
+    });
+
+    // add reclaim button for original host (client side)
+    if (myId === originalHostId) {
+      // ensure meta originalHostId exists and equals myId
+      const existingBtn = document.getElementById('reclaimHostBtn');
+      if (!existingBtn) {
+        const b = document.createElement('button');
+        b.id = 'reclaimHostBtn'; b.textContent = 'Reclaim Host';
+        b.onclick = async () => {
+          const snap = await db.ref(`rooms/${roomId}/users`).get();
+          snap.forEach(child => child.ref.update({ host: false }));
+          myUserRef.update({ host: true });
+        };
+        document.querySelector('.controls').appendChild(b);
+      }
+    }
+
+    updateAllHostControls();
+    updateAllBadges();
+    log('Joined room', roomId, 'myId', myId, 'isHost', isHost);
+  }
+
+  function updateAllHostControls(){
+    const userTiles = document.querySelectorAll('.videoTile');
+    userTiles.forEach(tile => {
+      const id = tile.id.replace('tile-','');
+      // skip if tile is local? still show others to host
+      addHostControlsToTile(tile, id, id===myId, id===originalHostId);
+    });
+  }
+  function updateAllBadges(){
+    db.ref(`rooms/${roomId}/users`).once('value').then(snap=>{
+      snap.forEach(child=>{
+        const id = child.key; const d = child.val();
+        const tile = document.getElementById('tile-'+id);
+        if (tile) {
+          const b = tile.querySelector('.hostBadge'); if (b) b.textContent = d.host ? '🏆 Host' : '';
+          const lbl = tile.querySelector('.labelName'); if (lbl) lbl.textContent = d.name;
+        }
+      });
+      // local badge
+      const localTile = document.getElementById('tile-local');
+      if (localTile) {
+        const b = localTile.querySelector('.hostBadge'); if (b) b.textContent = isHost ? '🏆 Host' : '';
+        const lbl = localTile.querySelector('.labelName'); if (lbl) lbl.textContent = username;
+      }
+    });
+  }
+
+  /***************** Listeners for offers/answers/candidates (already implemented above) *****************/
+  // (listenForOffers, listenForAnswers, listenForCandidates) implemented earlier
+
+  /***************** UI Control wiring *****************/
+  document.getElementById('createBtn').onclick = ()=> createRoom();
+  document.getElementById('joinBtn').onclick = ()=> joinRoom(false);
+  document.getElementById('leaveBtn').onclick = ()=> { if (myUserRef) myUserRef.remove(); location.reload(); };
+  document.getElementById('toggleAudio').onclick = ()=> {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach(t=> t.enabled = !t.enabled);
+  };
+  document.getElementById('toggleVideo').onclick = ()=> {
+    if (!localStream) return;
+    localStream.getVideoTracks().forEach(t=> t.enabled = !t.enabled);
+  };
+  document.getElementById('switchCamera').onclick = async ()=> {
+    if (!localStream) return;
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode: currentFacingMode }, audio:true });
+      const newVideo = newStream.getVideoTracks()[0];
+      const oldVideo = localStream.getVideoTracks()[0];
+      localStream.removeTrack(oldVideo); oldVideo.stop();
+      localStream.addTrack(newVideo);
+      // update local tile
+      const localTile = document.getElementById('tile-local');
+      if (localTile) localTile.querySelector('video').srcObject = localStream;
+      // replace outgoing video track on all pc senders
+      for (const pid in peers) {
+        const pc = peers[pid].pc;
+        const sender = pc.getSenders().find(s=> s.track && s.track.kind === 'video');
+        if (sender) sender.replaceTrack(newVideo);
+      }
+    } catch(e){ log('Switch camera failed', e); }
+  };
+
+  document.getElementById('changeNameBtn').onclick = async ()=> {
+    const newName = prompt('Enter new name:');
+    if (!newName) return;
+    username = newName;
+    if (myUserRef) await myUserRef.update({ name: newName });
+    const localTile = document.getElementById('tile-local');
+    if (localTile) localTile.querySelector('.labelName').textContent = newName;
+  };
+
+  document.getElementById('sendBtn').onclick = ()=> {
+    const t = document.getElementById('chatInput').value.trim();
+    if (!t || !roomId) return;
+    db.ref(`chats/${roomId}`).push({ user: username || 'Anon', text: t, ts: Date.now() });
+    document.getElementById('chatInput').value = '';
+  };
+
+  // render chat messages for this room
+  db.ref('chats').on('child_added', snap => {
+    const roomKey = snap.key;
+    if (roomKey !== roomId) return;
+    // when a room chat node is added, attach child_added to it
+    snap.ref.on('child_added', msgSnap => {
+      const m = msgSnap.val();
+      const cm = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.textContent = `${m.user}: ${m.text}`;
+      cm.appendChild(div);
+      cm.scrollTop = cm.scrollHeight;
+    });
+  });
+
+  /***************** When someone writes user rows, ensure incoming offers trigger connections **********/
+  // We already listen for offers/answers/candidates above in joinRoom() by calling those listeners.
+
+  // Small safety: if user refreshes before creating/joining, nothing happens.
   </script>
 </body>
 </html>

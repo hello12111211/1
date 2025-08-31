@@ -2,38 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Teams/Zoom Clone</title>
+  <title>Mini Teams/Zoom Clone</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
     header { background: #464eb8; color: white; padding: 1rem; text-align: center; }
-    #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
-    video { width: 300px; height: 200px; background: black; border-radius: 10px; }
     .controls { padding: 10px; text-align: center; }
-    .controls button { margin: 5px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; }
+    .controls input, .controls button { margin: 5px; padding: 8px; border-radius: 6px; }
+    #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; justify-content: center; }
+    .videoTile { position: relative; }
+    video { width: 250px; height: 180px; background: black; border-radius: 10px; }
+    .label { position: absolute; bottom: 5px; left: 5px; background: rgba(0,0,0,0.6); color: white;
+             padding: 2px 6px; border-radius: 4px; font-size: 14px; }
     .chat { background: white; border-top: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    #chatInput { width: 80%; padding: 8px; }
-    #sendBtn { padding: 8px; }
-    .log { background: #eee; padding: 5px; font-size: 12px; height: 100px; overflow-y: auto; }
+    #chatInput { width: 70%; padding: 8px; }
   </style>
 </head>
 <body>
   <header><h1>Mini Teams/Zoom Clone</h1></header>
 
   <div class="controls">
-    <input id="username" placeholder="Your name">
+    <input id="username" placeholder="Your name (optional)">
     <input id="roomId" placeholder="Room ID">
-    <button id="createBtn">Create room</button>
-    <button id="joinBtn">Join room</button>
+    <button id="createBtn">Create Room</button>
+    <button id="joinBtn">Join Room</button>
     <button id="leaveBtn">Leave</button>
     <button id="toggleAudio">Mute</button>
     <button id="toggleVideo">Stop Video</button>
     <button id="switchCamera">Switch Camera</button>
   </div>
 
-  <div id="videos">
-    <video id="localVideo" autoplay playsinline muted></video>
-    <video id="remoteVideo" autoplay playsinline></video>
-  </div>
+  <div id="videos"></div>
 
   <div class="chat">
     <div id="chatMessages"></div>
@@ -41,13 +39,11 @@
     <button id="sendBtn">Send</button>
   </div>
 
-  <div class="log" id="log"></div>
-
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
-    // === Firebase config (your real values) ===
+    // === Firebase config (your values) ===
     const firebaseConfig = {
       apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
       authDomain: "meeting-71831.firebaseapp.com",
@@ -55,98 +51,121 @@
       projectId: "meeting-71831",
       storageBucket: "meeting-71831.appspot.com",
       messagingSenderId: "48359638047",
-      appId: "1:48359638047:web:e72e4cc35b59a8f85c812a",
-      measurementId: "G-NNHCRQM3M2"
+      appId: "1:48359638047:web:e72e4cc35b59a8f85c812a"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     firebase.auth().signInAnonymously();
 
-    // === State ===
-    const localVideo = document.getElementById("localVideo");
-    const remoteVideo = document.getElementById("remoteVideo");
-    const logBox = document.getElementById("log");
-    let localStream, pc, roomId;
-    let currentFacingMode = "user"; // front camera first
+    // === Globals ===
+    let localStream, currentFacingMode = "user";
+    let username;
+    let roomId;
+    let peers = {}; // store { peerId: { pc, videoEl } }
 
-    function log(...args) {
-      logBox.innerHTML += args.join(" ") + "<br>";
-      logBox.scrollTop = logBox.scrollHeight;
-      console.log(...args);
+    // === Utility ===
+    function createVideoTile(id, labelText, stream) {
+      const tile = document.createElement("div");
+      tile.className = "videoTile";
+      const video = document.createElement("video");
+      video.autoplay = true; video.playsInline = true;
+      if (id === "local") video.muted = true;
+      if (stream) video.srcObject = stream;
+      const label = document.createElement("div");
+      label.className = "label"; label.textContent = labelText;
+      tile.appendChild(video); tile.appendChild(label);
+      tile.id = "tile-" + id;
+      document.getElementById("videos").appendChild(tile);
+      return { video, tile };
     }
 
-    // === Start media ===
+    function removeVideoTile(id) {
+      const el = document.getElementById("tile-" + id);
+      if (el) el.remove();
+    }
+
+    // === Local stream ===
     async function startLocalStream() {
       if (localStream) return;
       localStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode },
-        audio: true
+        video: { facingMode: currentFacingMode }, audio: true
       });
-      localVideo.srcObject = localStream;
+      createVideoTile("local", username, localStream);
     }
 
-    // === WebRTC setup ===
+    // === Room ===
     async function createRoom() {
-      await startLocalStream();
-      pc = new RTCPeerConnection();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Generate short ID (6 chars)
-      roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      const roomRef = db.ref("rooms/" + roomId);
-
+      roomId = Math.random().toString(36).substr(2,6).toUpperCase();
       document.getElementById("roomId").value = roomId;
-      log("Created room", roomId);
-
-      await roomRef.set({ offer: { type: offer.type, sdp: offer.sdp } });
-
-      roomRef.child("answer").on("value", async snap => {
-        const val = snap.val();
-        if (val && !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(val));
-        }
-      });
-
-      pc.onicecandidate = e => {
-        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
-      };
-
-      roomRef.child("candidates").on("child_added", snap => {
-        const cand = new RTCIceCandidate(snap.val());
-        pc.addIceCandidate(cand);
-      });
+      await joinRoom();
     }
 
     async function joinRoom() {
+      if (!roomId) roomId = document.getElementById("roomId").value.trim();
+      if (!roomId) return alert("Enter room ID");
+
+      let nameInput = document.getElementById("username").value.trim();
+      if (nameInput) {
+        username = nameInput;
+      } else {
+        // default User1, User2, ...
+        const snap = await db.ref("rooms/"+roomId+"/users").get();
+        const count = snap.exists() ? Object.keys(snap.val()).length+1 : 1;
+        username = "User" + count;
+      }
+
       await startLocalStream();
-      pc = new RTCPeerConnection();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
+      const userRef = db.ref("rooms/"+roomId+"/users").push();
+      const myId = userRef.key;
+      await userRef.set({ name: username });
 
-      const roomIdInput = document.getElementById("roomId").value;
-      const roomRef = db.ref("rooms/" + roomIdInput);
-      const snap = await roomRef.child("offer").get();
-      if (!snap.exists()) return alert("No such room");
-      await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      roomRef.child("answer").set({ type: answer.type, sdp: answer.sdp });
-
-      pc.onicecandidate = e => {
-        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
-      };
-
-      roomRef.child("candidates").on("child_added", snap => {
-        const cand = new RTCIceCandidate(snap.val());
-        pc.addIceCandidate(cand);
+      // Listen for other users joining
+      db.ref("rooms/"+roomId+"/users").on("child_added", snap => {
+        const peerId = snap.key, peerName = snap.val().name;
+        if (peerId === myId) return;
+        if (!peers[peerId]) startPeerConnection(peerId, peerName, myId);
       });
 
-      roomId = roomIdInput;
+      // Cleanup on leave
+      window.addEventListener("beforeunload", () => {
+        userRef.remove();
+      });
+    }
+
+    async function startPeerConnection(peerId, peerName, myId) {
+      const pc = new RTCPeerConnection();
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      const { video } = createVideoTile(peerId, peerName);
+
+      pc.ontrack = e => {
+        video.srcObject = e.streams[0];
+      };
+
+      // ICE
+      pc.onicecandidate = e => {
+        if (e.candidate) {
+          db.ref(`rooms/${roomId}/signals/${peerId}/${myId}/candidates`).push(e.candidate.toJSON());
+        }
+      };
+
+      peers[peerId] = { pc, videoEl: video };
+
+      // Offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      db.ref(`rooms/${roomId}/signals/${peerId}/${myId}/offer`).set(offer);
+
+      // Listen for answer
+      db.ref(`rooms/${roomId}/signals/${myId}/${peerId}/answer`).on("value", async snap => {
+        if (snap.exists() && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
+        }
+      });
+
+      // Listen for candidates
+      db.ref(`rooms/${roomId}/signals/${myId}/${peerId}/candidates`).on("child_added", snap => {
+        pc.addIceCandidate(new RTCIceCandidate(snap.val()));
+      });
     }
 
     // === Controls ===
@@ -165,46 +184,36 @@
       track.enabled = !track.enabled;
     };
 
-    // === Switch Camera ===
     document.getElementById("switchCamera").onclick = async () => {
       if (!localStream) return;
       currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode },
-          audio: true
-        });
-        const newVideoTrack = newStream.getVideoTracks()[0];
-        const oldVideoTrack = localStream.getVideoTracks()[0];
-        localStream.removeTrack(oldVideoTrack);
-        oldVideoTrack.stop();
-        localStream.addTrack(newVideoTrack);
-        localVideo.srcObject = localStream;
-
-        if (pc) {
-          const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(newVideoTrack);
-        }
-        log("Switched to", currentFacingMode, "camera");
-      } catch (e) {
-        log("Camera switch failed:", e);
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacingMode }, audio: true
+      });
+      const newTrack = newStream.getVideoTracks()[0];
+      const oldTrack = localStream.getVideoTracks()[0];
+      localStream.removeTrack(oldTrack);
+      oldTrack.stop();
+      localStream.addTrack(newTrack);
+      const localTile = document.querySelector("#tile-local video");
+      localTile.srcObject = localStream;
+      for (const peerId in peers) {
+        const sender = peers[peerId].pc.getSenders().find(s => s.track.kind === "video");
+        if (sender) sender.replaceTrack(newTrack);
       }
     };
 
-    // === Simple Chat with Username ===
+    // === Chat ===
     const chatMessages = document.getElementById("chatMessages");
-    const chatInput = document.getElementById("chatInput");
     document.getElementById("sendBtn").onclick = () => {
-      const msg = chatInput.value;
-      const user = document.getElementById("username").value.trim() || "Anon";
+      const msg = document.getElementById("chatInput").value.trim();
       if (!msg || !roomId) return;
-      db.ref("chats/" + roomId).push({ user, text: msg });
-      chatInput.value = "";
+      db.ref("chats/"+roomId).push({ user: username, text: msg });
+      document.getElementById("chatInput").value = "";
     };
+
     db.ref("chats").on("child_added", snap => {
-      const room = snap.key;
-      if (room !== roomId) return;
+      if (snap.key !== roomId) return;
       snap.ref.on("child_added", msgSnap => {
         const msg = msgSnap.val();
         const div = document.createElement("div");

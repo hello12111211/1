@@ -1,277 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video call</title>
+  <meta charset="UTF-8">
+  <title>Teams/Zoom Clone</title>
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#0ea5ff;--muted:#94a3b8;color-scheme: dark}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
-    body{background:linear-gradient(180deg,#071029 0%, #071827 100%);padding:18px;box-sizing:border-box;color:#e6eef6}
-    .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:18px}
-    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    video{width:100%;height:240px;background:#000;border-radius:8px;object-fit:cover}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    button{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:#04243a;cursor:pointer;font-weight:600}
-    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    input,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    .small{font-size:13px;color:var(--muted)}
-    #chatbox{height:320px;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
-    .msg{padding:8px 10px;border-radius:10px;max-width:80%;background:rgba(255,255,255,0.02)}
-    .msg.me{margin-left:auto;background:rgba(14,165,255,0.08)}
-    label{font-size:13px;color:var(--muted)}
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
+    header { background: #464eb8; color: white; padding: 1rem; text-align: center; }
+    #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+    video { width: 300px; height: 200px; background: black; border-radius: 10px; }
+    .controls { padding: 10px; text-align: center; }
+    .controls button { margin: 5px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; }
+    .chat { background: white; border-top: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
+    #chatInput { width: 80%; padding: 8px; }
+    #sendBtn { padding: 8px; }
+    .log { background: #eee; padding: 5px; font-size: 12px; height: 100px; overflow-y: auto; }
   </style>
 </head>
 <body>
-  <h1 style="margin:0 0 12px 0">Mini Teams/Zoom — WebRTC + Firebase</h1>
-  <div class="app">
-    <div>
-      <div class="card">
-        <div style="display:flex;gap:12px;align-items:center">
-          <div style="flex:1">
-            <label class="small">Your name</label>
-            <input id="username" placeholder="Alice" value="User">
-          </div>
-          <div style="width:180px">
-            <label class="small">Room ID</label>
-            <input id="roomIdInput" placeholder="(create or paste id)">
-          </div>
-        </div>
-        <div class="controls">
-          <button id="createBtn">Create room</button>
-          <button id="joinBtn" class="ghost">Join room</button>
-          <button id="leaveBtn" class="ghost">Leave</button>
-          <button id="toggleAudio" class="ghost">Mute</button>
-          <button id="toggleVideo" class="ghost">Stop Video</button>
-        </div>
-        <hr style="opacity:.06;margin:12px 0">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div>
-            <label class="small">Local</label>
-            <video id="localVideo" autoplay muted playsinline></video>
-          </div>
-          <div>
-            <label class="small">Remote</label>
-            <video id="remoteVideo" autoplay playsinline></video>
-          </div>
-        </div>
+  <header><h1>Mini Teams/Zoom Clone</h1></header>
 
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <label class="small">Console / State</label>
-        <pre id="log" style="height:120px;overflow:auto;background:transparent;border-radius:8px;padding:8px;border:1px dashed rgba(255,255,255,0.03)"></pre>
-      </div>
-    </div>
-
-    <div>
-      <div class="card">
-        <label class="small">Chat</label>
-        <div id="chatbox"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input id="msgInput" placeholder="Type a message">
-          <button id="sendMsg">Send</button>
-        </div>
-      </div>
-    </div>
+  <div class="controls">
+    <input id="username" placeholder="Your name">
+    <input id="roomId" placeholder="Room ID">
+    <button id="createBtn">Create room</button>
+    <button id="joinBtn">Join room</button>
+    <button id="leaveBtn">Leave</button>
+    <button id="toggleAudio">Mute</button>
+    <button id="toggleVideo">Stop Video</button>
+    <button id="switchCamera">Switch Camera</button>
   </div>
 
-  <script type="module">
-    // --- Firebase v9 modular imports (CDN)
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getDatabase, ref, push, set, onChildAdded, update, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
-    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+  <div id="videos">
+    <video id="localVideo" autoplay playsinline muted></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
 
-    // --- Your Firebase config (already wired in)
+  <div class="chat">
+    <div id="chatMessages"></div>
+    <input id="chatInput" placeholder="Type message...">
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    // === Firebase config (your real values) ===
     const firebaseConfig = {
       apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
       authDomain: "meeting-71831.firebaseapp.com",
+      databaseURL: "https://meeting-71831-default-rtdb.firebaseio.com",
       projectId: "meeting-71831",
-      storageBucket: "meeting-71831.firebasestorage.app",
+      storageBucket: "meeting-71831.appspot.com",
       messagingSenderId: "48359638047",
       appId: "1:48359638047:web:e72e4cc35b59a8f85c812a",
-      measurementId: "G-NNHCRQM3M2",
-      databaseURL: "https://meeting-71831-default-rtdb.firebaseio.com/"
+      measurementId: "G-NNHCRQM3M2"
     };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    firebase.auth().signInAnonymously();
 
-    // Init Firebase
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getDatabase(firebaseApp);
-    const auth = getAuth(firebaseApp);
-    signInAnonymously(auth).then(()=>log('Signed in anonymously')).catch(e=>log('Auth error',e));
+    // === State ===
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    const logBox = document.getElementById("log");
+    let localStream, pc, roomId;
+    let currentFacingMode = "user"; // front camera first
 
-    // Elements
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const createBtn = document.getElementById('createBtn');
-    const joinBtn = document.getElementById('joinBtn');
-    const leaveBtn = document.getElementById('leaveBtn');
-    const toggleAudio = document.getElementById('toggleAudio');
-    const toggleVideo = document.getElementById('toggleVideo');
-    const logEl = document.getElementById('log');
-    const roomIdInput = document.getElementById('roomIdInput');
-    const usernameEl = document.getElementById('username');
-    const chatbox = document.getElementById('chatbox');
-    const msgInput = document.getElementById('msgInput');
-    const sendMsg = document.getElementById('sendMsg');
-
-    // State
-    let localStream = null;
-    let pc = null;
-    let roomId = null;
-    let roomRef = null;
-    let candidatesRef = null;
-
-    function log(...args){
+    function log(...args) {
+      logBox.innerHTML += args.join(" ") + "<br>";
+      logBox.scrollTop = logBox.scrollHeight;
       console.log(...args);
-      logEl.textContent += args.join(' ') + '\n';
-      logEl.scrollTop = logEl.scrollHeight;
     }
 
-    // Start local media
-    async function startLocal(){
-      if(localStream) return;
-      try{
-        localStream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-        localVideo.srcObject = localStream;
-        log('Local stream started');
-      }catch(e){log('getUserMedia failed', e)}
+    // === Start media ===
+    async function startLocalStream() {
+      if (localStream) return;
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacingMode },
+        audio: true
+      });
+      localVideo.srcObject = localStream;
     }
 
-    // Create PeerConnection helper
-    function makePeerConnection(){
-      const pc = new RTCPeerConnection();
+    // === WebRTC setup ===
+    async function createRoom() {
+      await startLocalStream();
+      pc = new RTCPeerConnection();
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      pc.ontrack = event => { remoteVideo.srcObject = event.streams[0]; log('Remote track received'); };
-      pc.onicecandidate = e => {
-        if(!e.candidate || !candidatesRef) return;
-        const c = e.candidate.toJSON();
-        push(candidatesRef, c);
-      };
-      return pc;
-    }
-
-    // Create room (offer) flow
-    createBtn.onclick = async () => {
-      await startLocal();
-      pc = makePeerConnection();
-      roomId = Math.random().toString(36).substr(2,9);
-      roomIdInput.value = roomId;
-      log('Creating room', roomId);
-
-      candidatesRef = ref(db, `rooms/${roomId}/candidates/offer`);
+      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      await set(ref(db, `rooms/${roomId}/offer`), {
-        sdp: offer.sdp,
-        type: offer.type,
-        createdAt: Date.now(),
-        host: usernameEl.value || 'host'
-      });
+      const roomRef = db.ref("rooms").push();
+      roomId = roomRef.key;
+      document.getElementById("roomId").value = roomId;
+      log("Created room", roomId);
 
-      onValue(ref(db, `rooms/${roomId}/answer`), async snap => {
-        const data = snap.val();
-        if(!data) return;
-        const answer = {type: data.type, sdp: data.sdp};
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        log('Remote answer set');
-      });
+      roomRef.set({ offer: { type: offer.type, sdp: offer.sdp } });
 
-      onChildAdded(ref(db, `rooms/${roomId}/candidates/answer`), snapshot => {
-        const cand = snapshot.val();
-        pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e=>log('addIce failed', e));
-      });
-
-      log('Offer created and stored');
-      bindChat();
-    };
-
-    // Join room (answer) flow
-    joinBtn.onclick = async () => {
-      const id = roomIdInput.value.trim();
-      if(!id) return log('Enter room id');
-      roomId = id;
-      await startLocal();
-      pc = makePeerConnection();
-
-      const offerRef = ref(db, `rooms/${roomId}/offer`);
-      let offerSnap = await new Promise(r=>onValue(offerRef, snap=>r(snap), {onlyOnce:true}));
-      let offerData = offerSnap.val();
-      if(!offerData) return log('No offer found for this room');
-
-      await pc.setRemoteDescription({type: offerData.type, sdp: offerData.sdp});
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      await set(ref(db, `rooms/${roomId}/answer`), { type: answer.type, sdp: answer.sdp, createdAt: Date.now(), guest: usernameEl.value || 'guest' });
-
-      candidatesRef = ref(db, `rooms/${roomId}/candidates/answer`);
-
-      onChildAdded(ref(db, `rooms/${roomId}/candidates/offer`), snapshot => {
-        const cand = snapshot.val();
-        pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e=>log('addIce failed', e));
+      roomRef.child("answer").on("value", async snap => {
+        const val = snap.val();
+        if (val && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(val));
+        }
       });
 
       pc.onicecandidate = e => {
-        if(!e.candidate || !candidatesRef) return;
-        const c = e.candidate.toJSON();
-        push(candidatesRef, c);
+        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
       };
 
-      log('Joined room and sent answer');
-      bindChat();
-    };
-
-    // Leave
-    leaveBtn.onclick = async () => {
-      if(pc) pc.close(); pc = null;
-      localVideo.srcObject = null;
-      remoteVideo.srcObject = null;
-      if(roomId && db){
-        try{ await remove(ref(db, `rooms/${roomId}`)); }catch(e){}
-      }
-      roomId = null; roomIdInput.value = '';
-      log('Left room');
-    };
-
-    toggleAudio.onclick = () => {
-      if(!localStream) return;
-      const audioTrack = localStream.getAudioTracks()[0];
-      if(!audioTrack) return;
-      audioTrack.enabled = !audioTrack.enabled;
-      toggleAudio.textContent = audioTrack.enabled ? 'Mute' : 'Unmute';
-    };
-    toggleVideo.onclick = () => {
-      if(!localStream) return;
-      const v = localStream.getVideoTracks()[0];
-      if(!v) return;
-      v.enabled = !v.enabled;
-      toggleVideo.textContent = v.enabled ? 'Stop Video' : 'Start Video';
-    };
-
-    // Chat
-    sendMsg.onclick = async () => {
-      if(!roomId) return log('Join a room first to chat');
-      const t = msgInput.value.trim(); if(!t) return;
-      const payload = {text:t, from:usernameEl.value||'me', ts:Date.now()};
-      await push(ref(db, `rooms/${roomId}/chat`), payload);
-      msgInput.value='';
-    };
-
-    function bindChat(){
-      if(!db || !roomId) return;
-      onChildAdded(ref(db, `rooms/${roomId}/chat`), snap => {
-        const m = snap.val();
-        const el = document.createElement('div'); el.className='msg' + ((m.from===usernameEl.value)?' me':'');
-        el.textContent = `${m.from}: ${m.text}`;
-        chatbox.appendChild(el); chatbox.scrollTop = chatbox.scrollHeight;
+      roomRef.child("candidates").on("child_added", snap => {
+        const cand = new RTCIceCandidate(snap.val());
+        pc.addIceCandidate(cand);
       });
     }
 
-    (async ()=>{ try{ await startLocal(); }catch(e){} })();
+    async function joinRoom() {
+      await startLocalStream();
+      pc = new RTCPeerConnection();
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
+
+      const roomRef = db.ref("rooms/" + document.getElementById("roomId").value);
+      const snap = await roomRef.child("offer").get();
+      if (!snap.exists()) return alert("No such room");
+      await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      roomRef.child("answer").set({ type: answer.type, sdp: answer.sdp });
+
+      pc.onicecandidate = e => {
+        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
+      };
+
+      roomRef.child("candidates").on("child_added", snap => {
+        const cand = new RTCIceCandidate(snap.val());
+        pc.addIceCandidate(cand);
+      });
+    }
+
+    // === Controls ===
+    document.getElementById("createBtn").onclick = createRoom;
+    document.getElementById("joinBtn").onclick = joinRoom;
+    document.getElementById("leaveBtn").onclick = () => location.reload();
+
+    document.getElementById("toggleAudio").onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getAudioTracks()[0];
+      track.enabled = !track.enabled;
+    };
+    document.getElementById("toggleVideo").onclick = () => {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+      track.enabled = !track.enabled;
+    };
+
+    // === Switch Camera ===
+    document.getElementById("switchCamera").onclick = async () => {
+      if (!localStream) return;
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacingMode },
+          audio: true
+        });
+        const newVideoTrack = newStream.getVideoTracks()[0];
+        const oldVideoTrack = localStream.getVideoTracks()[0];
+        localStream.removeTrack(oldVideoTrack);
+        oldVideoTrack.stop();
+        localStream.addTrack(newVideoTrack);
+        localVideo.srcObject = localStream;
+
+        if (pc) {
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(newVideoTrack);
+        }
+        log("Switched to", currentFacingMode, "camera");
+      } catch (e) {
+        log("Camera switch failed:", e);
+      }
+    };
+
+    // === Simple Chat ===
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+    document.getElementById("sendBtn").onclick = () => {
+      const msg = chatInput.value;
+      if (!msg || !roomId) return;
+      db.ref("chats/" + roomId).push({ user: "anon", text: msg });
+      chatInput.value = "";
+    };
+    db.ref("chats").on("child_added", snap => {
+      const room = snap.key;
+      if (room !== roomId) return;
+      snap.ref.on("child_added", msgSnap => {
+        const msg = msgSnap.val();
+        const div = document.createElement("div");
+        div.textContent = msg.user + ": " + msg.text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+    });
   </script>
 </body>
 </html>

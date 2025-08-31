@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mini Teams/Zoom — WebRTC + Firebase (Single File)</title>
+  <title>Mini Teams/Zoom — WebRTC + Firebase</title>
   <style>
     :root{--bg:#0f1724;--card:#0b1220;--accent:#0ea5ff;--muted:#94a3b8;color-scheme: dark}
     html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
@@ -73,18 +73,6 @@
           <button id="sendMsg">Send</button>
         </div>
       </div>
-
-      <div class="card" style="margin-top:12px">
-        <label class="small">Firebase config</label>
-        <textarea id="firebaseConfig" rows=6 placeholder="Paste your Firebase config object here (replace the dummy below)">{
-  /* Replace with your Firebase Web config (apiKey, authDomain, databaseURL, projectId...) */
-}</textarea>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button id="saveConfig">Save config</button>
-          <button id="authAnon" class="ghost">Sign in (Anonymous)</button>
-        </div>
-        <p class="small" style="margin-top:8px">You must enable Authentication (Anonymous) and Realtime Database in your Firebase console. See steps below.</p>
-      </div>
     </div>
   </div>
 
@@ -93,6 +81,24 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
     import { getDatabase, ref, push, set, onChildAdded, update, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
+
+    // --- Your Firebase config (already wired in)
+    const firebaseConfig = {
+      apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
+      authDomain: "meeting-71831.firebaseapp.com",
+      projectId: "meeting-71831",
+      storageBucket: "meeting-71831.firebasestorage.app",
+      messagingSenderId: "48359638047",
+      appId: "1:48359638047:web:e72e4cc35b59a8f85c812a",
+      measurementId: "G-NNHCRQM3M2",
+      databaseURL: "https://meeting-71831-default-rtdb.firebaseio.com/"
+    };
+
+    // Init Firebase
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
+    const auth = getAuth(firebaseApp);
+    signInAnonymously(auth).then(()=>log('Signed in anonymously')).catch(e=>log('Auth error',e));
 
     // Elements
     const localVideo = document.getElementById('localVideo');
@@ -104,9 +110,6 @@
     const toggleVideo = document.getElementById('toggleVideo');
     const logEl = document.getElementById('log');
     const roomIdInput = document.getElementById('roomIdInput');
-    const firebaseConfigInput = document.getElementById('firebaseConfig');
-    const saveConfigBtn = document.getElementById('saveConfig');
-    const authAnonBtn = document.getElementById('authAnon');
     const usernameEl = document.getElementById('username');
     const chatbox = document.getElementById('chatbox');
     const msgInput = document.getElementById('msgInput');
@@ -116,9 +119,6 @@
     let localStream = null;
     let pc = null;
     let roomId = null;
-    let firebaseApp = null;
-    let db = null;
-    let auth = null;
     let roomRef = null;
     let candidatesRef = null;
 
@@ -127,39 +127,6 @@
       logEl.textContent += args.join(' ') + '\n';
       logEl.scrollTop = logEl.scrollHeight;
     }
-
-    // Default dummy config for UX — user should paste their real config
-    firebaseConfigInput.value = `{
-
-    apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
-    authDomain: "meeting-71831.firebaseapp.com",
-    projectId: "meeting-71831",
-    storageBucket: "meeting-71831.firebasestorage.app",
-    messagingSenderId: "48359638047",
-    appId: "1:48359638047:web:e72e4cc35b59a8f85c812a",
-    measurementId: "G-NNHCRQM3M2"
-  };
-
-    saveConfigBtn.onclick = () => {
-      try{
-        const cfg = eval('(' + firebaseConfigInput.value + ')');
-        if(firebaseApp){
-          log('Firebase already initialized — refreshing page recommended.');
-        }
-        firebaseApp = initializeApp(cfg);
-        db = getDatabase(firebaseApp);
-        auth = getAuth(firebaseApp);
-        log('Firebase initialized');
-      }catch(e){
-        log('Invalid config (paste your Firebase web config object).', e);
-      }
-    };
-
-    authAnonBtn.onclick = async () => {
-      if(!auth) return log('Init Firebase first');
-      try{ await signInAnonymously(auth); log('Signed in anonymously'); }
-      catch(e){ log('Auth error', e); }
-    };
 
     // Start local media
     async function startLocal(){
@@ -174,9 +141,7 @@
     // Create PeerConnection helper
     function makePeerConnection(){
       const pc = new RTCPeerConnection();
-      // add local tracks
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      // remote track
       pc.ontrack = event => { remoteVideo.srcObject = event.streams[0]; log('Remote track received'); };
       pc.onicecandidate = e => {
         if(!e.candidate || !candidatesRef) return;
@@ -188,13 +153,9 @@
 
     // Create room (offer) flow
     createBtn.onclick = async () => {
-      if(!db) return log('Initialize Firebase first');
       await startLocal();
       pc = makePeerConnection();
-
-      // room id is a push key
-      roomRef = ref(db, 'rooms/' + Math.random().toString(36).substr(2,9));
-      roomId = roomRef.key || roomRef._path && roomRef._path.pieces_.slice(-1)[0];
+      roomId = Math.random().toString(36).substr(2,9);
       roomIdInput.value = roomId;
       log('Creating room', roomId);
 
@@ -203,7 +164,6 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // save offer to DB
       await set(ref(db, `rooms/${roomId}/offer`), {
         sdp: offer.sdp,
         type: offer.type,
@@ -211,7 +171,6 @@
         host: usernameEl.value || 'host'
       });
 
-      // listen for answer
       onValue(ref(db, `rooms/${roomId}/answer`), async snap => {
         const data = snap.val();
         if(!data) return;
@@ -220,51 +179,41 @@
         log('Remote answer set');
       });
 
-      // listen for remote ICE candidates
       onChildAdded(ref(db, `rooms/${roomId}/candidates/answer`), snapshot => {
         const cand = snapshot.val();
         pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e=>log('addIce failed', e));
       });
 
       log('Offer created and stored');
+      bindChat();
     };
 
     // Join room (answer) flow
     joinBtn.onclick = async () => {
-      if(!db) return log('Init Firebase first');
       const id = roomIdInput.value.trim();
       if(!id) return log('Enter room id');
       roomId = id;
       await startLocal();
       pc = makePeerConnection();
 
-      // read offer
-      const offerSnap = await (await fetch('https://firebaseremoteplaceholder')).catch(()=>null); // harmless placeholder to keep code editor happy
-
       const offerRef = ref(db, `rooms/${roomId}/offer`);
-      let offerData = null;
-      onValue(offerRef, snap => { offerData = snap.val(); });
-      // small wait for value (in real app better wiring)
-      await new Promise(r=>setTimeout(r,700));
+      let offerSnap = await new Promise(r=>onValue(offerRef, snap=>r(snap), {onlyOnce:true}));
+      let offerData = offerSnap.val();
       if(!offerData) return log('No offer found for this room');
 
       await pc.setRemoteDescription({type: offerData.type, sdp: offerData.sdp});
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // write answer
       await set(ref(db, `rooms/${roomId}/answer`), { type: answer.type, sdp: answer.sdp, createdAt: Date.now(), guest: usernameEl.value || 'guest' });
 
-      // candidates
       candidatesRef = ref(db, `rooms/${roomId}/candidates/answer`);
 
-      // listen for host ICE
       onChildAdded(ref(db, `rooms/${roomId}/candidates/offer`), snapshot => {
         const cand = snapshot.val();
         pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e=>log('addIce failed', e));
       });
 
-      // push our candidates
       pc.onicecandidate = e => {
         if(!e.candidate || !candidatesRef) return;
         const c = e.candidate.toJSON();
@@ -272,6 +221,7 @@
       };
 
       log('Joined room and sent answer');
+      bindChat();
     };
 
     // Leave
@@ -280,7 +230,7 @@
       localVideo.srcObject = null;
       remoteVideo.srcObject = null;
       if(roomId && db){
-        try{ await remove(ref(db, `rooms/${roomId}/candidates`)); await remove(ref(db, `rooms/${roomId}/offer`)); await remove(ref(db, `rooms/${roomId}/answer`)); }catch(e){}
+        try{ await remove(ref(db, `rooms/${roomId}`)); }catch(e){}
       }
       roomId = null; roomIdInput.value = '';
       log('Left room');
@@ -301,18 +251,17 @@
       toggleVideo.textContent = v.enabled ? 'Stop Video' : 'Start Video';
     };
 
-    // Chat (simple object using realtime DB)
+    // Chat
     sendMsg.onclick = async () => {
-      if(!db || !roomId) return log('Join a room first to chat');
+      if(!roomId) return log('Join a room first to chat');
       const t = msgInput.value.trim(); if(!t) return;
       const payload = {text:t, from:usernameEl.value||'me', ts:Date.now()};
       await push(ref(db, `rooms/${roomId}/chat`), payload);
       msgInput.value='';
     };
 
-    // Listen for chat messages
     function bindChat(){
-      if(!db) return;
+      if(!db || !roomId) return;
       onChildAdded(ref(db, `rooms/${roomId}/chat`), snap => {
         const m = snap.val();
         const el = document.createElement('div'); el.className='msg' + ((m.from===usernameEl.value)?' me':'');
@@ -321,12 +270,7 @@
       });
     }
 
-    // When a roomId is set, bind chat listener automatically
-    roomIdInput.addEventListener('change', ()=>{ if(roomIdInput.value) roomId=roomIdInput.value; if(roomId) bindChat(); });
-
-    // small UX: try to start local media on load
     (async ()=>{ try{ await startLocal(); }catch(e){} })();
-
   </script>
 </body>
 </html>

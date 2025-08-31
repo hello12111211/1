@@ -95,12 +95,14 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const roomRef = db.ref("rooms").push();
-      roomId = roomRef.key;
+      // Generate short ID (6 chars)
+      roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+      const roomRef = db.ref("rooms/" + roomId);
+
       document.getElementById("roomId").value = roomId;
       log("Created room", roomId);
 
-      roomRef.set({ offer: { type: offer.type, sdp: offer.sdp } });
+      await roomRef.set({ offer: { type: offer.type, sdp: offer.sdp } });
 
       roomRef.child("answer").on("value", async snap => {
         const val = snap.val();
@@ -125,7 +127,8 @@
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
 
-      const roomRef = db.ref("rooms/" + document.getElementById("roomId").value);
+      const roomIdInput = document.getElementById("roomId").value;
+      const roomRef = db.ref("rooms/" + roomIdInput);
       const snap = await roomRef.child("offer").get();
       if (!snap.exists()) return alert("No such room");
       await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
@@ -142,6 +145,8 @@
         const cand = new RTCIceCandidate(snap.val());
         pc.addIceCandidate(cand);
       });
+
+      roomId = roomIdInput;
     }
 
     // === Controls ===

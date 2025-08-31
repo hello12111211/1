@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Teams/Zoom Clone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>T.D</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
     header { background: #464eb8; color: white; padding: 1rem; text-align: center; }
@@ -17,7 +18,7 @@
   </style>
 </head>
 <body>
-  <header><h1>Mini Teams/Zoom Clone</h1></header>
+  <header><h1>Video call</h1></header>
 
   <div class="controls">
     <input id="username" placeholder="Your name">
@@ -130,7 +131,7 @@
       const roomIdInput = document.getElementById("roomId").value;
       const roomRef = db.ref("rooms/" + roomIdInput);
       const snap = await roomRef.child("offer").get();
-      if (!snap.exists()) return alert("No such room");
+      if (!snap.exists()) return alert("Room id not found");
       await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
 
       const answer = await pc.createAnswer();
@@ -198,7 +199,7 @@
     document.getElementById("sendBtn").onclick = () => {
       const msg = chatInput.value;
       if (!msg || !roomId) return;
-      db.ref("chats/" + roomId).push({ user: "anon", text: msg });
+      db.ref("chats/" + roomId).push({ user: "User", text: msg });
       chatInput.value = "";
     };
     db.ref("chats").on("child_added", snap => {

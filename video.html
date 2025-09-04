@@ -10,9 +10,10 @@
     #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
     video { width: 300px; height: 200px; background: black; border-radius: 10px; }
     .controls { padding: 10px; text-align: center; }
-    .controls button { margin: 5px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; }
+    .controls input, .controls button { margin: 5px; padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; }
+    .controls button { border: none; background: #464eb8; color: white; cursor: pointer; }
     .chat { background: white; border-top: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    #chatInput { width: 80%; padding: 8px; }
+    #chatInput { width: 75%; padding: 8px; }
     #sendBtn { padding: 8px; }
     .log { background: #eee; padding: 5px; font-size: 12px; height: 100px; overflow-y: auto; }
   </style>
@@ -33,7 +34,6 @@
 
   <div id="videos">
     <video id="localVideo" autoplay playsinline muted></video>
-    <video id="remoteVideo" autoplay playsinline></video>
   </div>
 
   <div class="chat">
@@ -48,7 +48,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
-    // === Firebase config (your real values) ===
+    // === Firebase config ===
     const firebaseConfig = {
       apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
       authDomain: "meeting-71831.firebaseapp.com",
@@ -65,10 +65,16 @@
 
     // === State ===
     const localVideo = document.getElementById("localVideo");
-    const remoteVideo = document.getElementById("remoteVideo");
+    const videosDiv = document.getElementById("videos");
     const logBox = document.getElementById("log");
-    let localStream, pc, roomId;
-    let currentFacingMode = "user"; // front camera first
+    const chatMessages = document.getElementById("chatMessages");
+    const chatInput = document.getElementById("chatInput");
+
+    let localStream;
+    let roomId;
+    let peers = {};
+    let currentFacingMode = "user";
+    const myId = Math.random().toString(36).substr(2, 6);
 
     function log(...args) {
       logBox.innerHTML += args.join(" ") + "<br>";
@@ -76,7 +82,7 @@
       console.log(...args);
     }
 
-    // === Start media ===
+    // === Local media ===
     async function startLocalStream() {
       if (localStream) return;
       localStream = await navigator.mediaDevices.getUserMedia({
@@ -86,68 +92,90 @@
       localVideo.srcObject = localStream;
     }
 
-    // === WebRTC setup ===
+    // === Remote video helper ===
+    function addRemoteVideo(peerId, stream) {
+      let video = document.getElementById("video-" + peerId);
+      if (!video) {
+        video = document.createElement("video");
+        video.id = "video-" + peerId;
+        video.autoplay = true;
+        video.playsInline = true;
+        videosDiv.appendChild(video);
+      }
+      video.srcObject = stream;
+    }
+
+    // === Create room ===
     async function createRoom() {
       await startLocalStream();
-      pc = new RTCPeerConnection();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      // Generate short ID (6 chars)
       roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      const roomRef = db.ref("rooms/" + roomId);
-
       document.getElementById("roomId").value = roomId;
       log("Created room", roomId);
+    }
 
-      await roomRef.set({ offer: { type: offer.type, sdp: offer.sdp } });
+    // === Join room ===
+    async function joinRoom() {
+      await startLocalStream();
+      roomId = document.getElementById("roomId").value;
+      if (!roomId) return alert("Enter room id");
 
-      roomRef.child("answer").on("value", async snap => {
-        const val = snap.val();
-        if (val && !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(val));
+      const roomRef = db.ref("rooms/" + roomId + "/members");
+      const myRef = roomRef.push({ id: myId });
+
+      // Listen for new peers
+      roomRef.on("child_added", snap => {
+        const peerId = snap.val().id;
+        if (peerId === myId) return;
+        if (!peers[peerId]) startPeer(peerId);
+      });
+
+      // Cleanup when leaving
+      window.addEventListener("beforeunload", () => myRef.remove());
+    }
+
+    // === Start peer connection ===
+    async function startPeer(peerId) {
+      const pc = new RTCPeerConnection();
+      peers[peerId] = pc;
+
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+      pc.ontrack = e => addRemoteVideo(peerId, e.streams[0]);
+
+      const connRef = db.ref(`signals/${roomId}/${myId}-${peerId}`);
+      const backRef = db.ref(`signals/${roomId}/${peerId}-${myId}`);
+
+      pc.onicecandidate = e => {
+        if (e.candidate) connRef.push({ candidate: e.candidate.toJSON() });
+      };
+
+      // Send offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      connRef.push({ offer: { type: offer.type, sdp: offer.sdp } });
+
+      // Listen for answer / candidates
+      backRef.on("child_added", async snap => {
+        const data = snap.val();
+        if (data.answer && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+        if (data.candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
         }
       });
 
-      pc.onicecandidate = e => {
-        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
-      };
-
-      roomRef.child("candidates").on("child_added", snap => {
-        const cand = new RTCIceCandidate(snap.val());
-        pc.addIceCandidate(cand);
+      // Respond to offers from others
+      const offerRef = db.ref(`signals/${roomId}/${peerId}-${myId}`);
+      offerRef.on("child_added", async snap => {
+        const data = snap.val();
+        if (data.offer) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          backRef.push({ answer: { type: answer.type, sdp: answer.sdp } });
+        }
       });
-    }
-
-    async function joinRoom() {
-      await startLocalStream();
-      pc = new RTCPeerConnection();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
-
-      const roomIdInput = document.getElementById("roomId").value;
-      const roomRef = db.ref("rooms/" + roomIdInput);
-      const snap = await roomRef.child("offer").get();
-      if (!snap.exists()) return alert("Room id not found");
-      await pc.setRemoteDescription(new RTCSessionDescription(snap.val()));
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      roomRef.child("answer").set({ type: answer.type, sdp: answer.sdp });
-
-      pc.onicecandidate = e => {
-        if (e.candidate) roomRef.child("candidates").push(e.candidate.toJSON());
-      };
-
-      roomRef.child("candidates").on("child_added", snap => {
-        const cand = new RTCIceCandidate(snap.val());
-        pc.addIceCandidate(cand);
-      });
-
-      roomId = roomIdInput;
     }
 
     // === Controls ===
@@ -166,11 +194,9 @@
       track.enabled = !track.enabled;
     };
 
-    // === Switch Camera ===
     document.getElementById("switchCamera").onclick = async () => {
       if (!localStream) return;
       currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-
       try {
         const newStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: currentFacingMode },
@@ -183,28 +209,27 @@
         localStream.addTrack(newVideoTrack);
         localVideo.srcObject = localStream;
 
-        if (pc) {
+        Object.values(peers).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
           if (sender) sender.replaceTrack(newVideoTrack);
-        }
+        });
         log("Switched to", currentFacingMode, "camera");
       } catch (e) {
         log("Camera switch failed:", e);
       }
     };
 
-    // === Simple Chat ===
-    const chatMessages = document.getElementById("chatMessages");
-    const chatInput = document.getElementById("chatInput");
+    // === Chat ===
     document.getElementById("sendBtn").onclick = () => {
       const msg = chatInput.value;
       if (!msg || !roomId) return;
-      db.ref("chats/" + roomId).push({ user: "User", text: msg });
+      const username = document.getElementById("username").value || "Anonymous";
+      db.ref("chats/" + roomId).push({ user: username, text: msg });
       chatInput.value = "";
     };
+
     db.ref("chats").on("child_added", snap => {
-      const room = snap.key;
-      if (room !== roomId) return;
+      if (snap.key !== roomId) return;
       snap.ref.on("child_added", msgSnap => {
         const msg = msgSnap.val();
         const div = document.createElement("div");

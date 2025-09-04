@@ -10,10 +10,9 @@
     #videos { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
     video { width: 300px; height: 200px; background: black; border-radius: 10px; }
     .controls { padding: 10px; text-align: center; }
-    .controls input, .controls button { margin: 5px; padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; }
-    .controls button { border: none; background: #464eb8; color: white; cursor: pointer; }
+    .controls button { margin: 5px; padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; }
     .chat { background: white; border-top: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    #chatInput { width: 75%; padding: 8px; }
+    #chatInput { width: 80%; padding: 8px; }
     #sendBtn { padding: 8px; }
     .log { background: #eee; padding: 5px; font-size: 12px; height: 100px; overflow-y: auto; }
   </style>
@@ -49,7 +48,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
-    // === Firebase config ===
+    // === Firebase config (your real values) ===
     const firebaseConfig = {
       apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
       authDomain: "meeting-71831.firebaseapp.com",
@@ -66,17 +65,13 @@
 
     // === State ===
     const localVideo = document.getElementById("localVideo");
-    const videosDiv = document.getElementById("videos");
-    const logBox = document.getElementById("log");
     const chatMessages = document.getElementById("chatMessages");
     const chatInput = document.getElementById("chatInput");
-
-    let localStream;
-    let roomId;
+    const logBox = document.getElementById("log");
+    let localStream, roomId, myId, isHost = false;
     let peers = {};
-    let currentFacingMode = "user";
-    let isHost = false;
-    const myId = Math.random().toString(36).substr(2, 6);
+    let currentFacingMode = "user"; // front camera
+    let currentVideoTrack;
 
     function log(...args) {
       logBox.innerHTML += args.join(" ") + "<br>";
@@ -84,99 +79,35 @@
       console.log(...args);
     }
 
-    // === Local media ===
     async function startLocalStream() {
       if (localStream) return;
       localStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: currentFacingMode },
         audio: true
       });
+      currentVideoTrack = localStream.getVideoTracks()[0];
       localVideo.srcObject = localStream;
     }
 
-    // === Remote video helper ===
-    function addRemoteVideo(peerId, stream) {
-      let video = document.getElementById("video-" + peerId);
-      if (!video) {
-        video = document.createElement("video");
-        video.id = "video-" + peerId;
-        video.autoplay = true;
-        video.playsInline = true;
-        videosDiv.appendChild(video);
+    // === Helpers for remote video ===
+    function addRemoteVideo(id, stream) {
+      let v = document.getElementById("video_" + id);
+      if (!v) {
+        v = document.createElement("video");
+        v.id = "video_" + id;
+        v.autoplay = true;
+        v.playsinline = true;
+        document.getElementById("videos").appendChild(v);
       }
-      video.srcObject = stream;
+      v.srcObject = stream;
     }
 
-    // === Create room ===
-    async function createRoom() {
-      await startLocalStream();
-      roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      document.getElementById("roomId").value = roomId;
-      isHost = true;
-      db.ref("rooms/" + roomId).set({ hostId: myId });
-      log("Created room", roomId, "(You are host)");
+    function removeRemoteVideo(id) {
+      const v = document.getElementById("video_" + id);
+      if (v) v.remove();
     }
 
-    // === Join room ===
-    async function joinRoom() {
-      await startLocalStream();
-      roomId = document.getElementById("roomId").value;
-      if (!roomId) return alert("Enter room id");
-
-      const roomRef = db.ref("rooms/" + roomId + "/members");
-      const myRef = roomRef.push({ id: myId });
-
-      // Check host
-      const roomInfo = await db.ref("rooms/" + roomId).get();
-      if (roomInfo.exists() && roomInfo.val().hostId === myId) isHost = true;
-
-      // Listen for new peers
-      roomRef.on("child_added", snap => {
-        const peerId = snap.val().id;
-        if (peerId === myId) return;
-        const isInitiator = myId > peerId;
-        if (!peers[peerId]) startPeer(peerId, isInitiator);
-      });
-
-      // Cleanup
-      window.addEventListener("beforeunload", () => myRef.remove());
-
-      // If I am host → listen for screen share requests
-      if (isHost) {
-        db.ref("rooms/" + roomId + "/requests").on("child_added", snap => {
-          const req = snap.val();
-          if (req && !req.handled) {
-            if (confirm(req.user + " wants to share screen. Allow?")) {
-              db.ref("rooms/" + roomId + "/permissions/" + req.id).set({ allowed: true });
-            } else {
-              db.ref("rooms/" + roomId + "/permissions/" + req.id).set({ allowed: false });
-            }
-            snap.ref.update({ handled: true });
-          }
-        });
-      }
-
-      // Listen for permission granted
-      db.ref("rooms/" + roomId + "/permissions/" + myId).on("value", async snap => {
-        const perm = snap.val();
-        if (perm && perm.allowed) {
-          startScreenShare();
-        } else if (perm && perm.allowed === false) {
-          alert("Host denied screen sharing.");
-        }
-      });
-
-      // === Chat listener (fixed) ===
-      db.ref("chats/" + roomId).on("child_added", msgSnap => {
-        const msg = msgSnap.val();
-        const div = document.createElement("div");
-        div.textContent = msg.user + ": " + msg.text;
-        chatMessages.appendChild(div);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      });
-    }
-
-    // === Start peer connection ===
+    // === WebRTC ===
     async function startPeer(peerId, isInitiator) {
       const pc = new RTCPeerConnection();
       peers[peerId] = pc;
@@ -217,54 +148,124 @@
       });
     }
 
-    // === Screen share request ===
+    async function createRoom() {
+      await startLocalStream();
+      roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+      document.getElementById("roomId").value = roomId;
+      myId = Date.now().toString(36);
+      isHost = true;
+
+      const roomRef = db.ref("rooms/" + roomId);
+      roomRef.push({ id: myId });
+
+      roomRef.on("child_added", snap => {
+        const peerId = snap.val().id;
+        if (peerId === myId) return;
+        const isInitiator = myId > peerId;
+        if (!peers[peerId]) startPeer(peerId, isInitiator);
+      });
+
+      setupChat();
+      log("Created room", roomId);
+    }
+
+    async function joinRoom() {
+      await startLocalStream();
+      roomId = document.getElementById("roomId").value;
+      myId = Date.now().toString(36);
+      isHost = false;
+
+      const roomRef = db.ref("rooms/" + roomId);
+      const snap = await roomRef.get();
+      if (!snap.exists()) return alert("Room not found");
+
+      roomRef.push({ id: myId });
+
+      roomRef.on("child_added", snap => {
+        const peerId = snap.val().id;
+        if (peerId === myId) return;
+        const isInitiator = myId > peerId;
+        if (!peers[peerId]) startPeer(peerId, isInitiator);
+      });
+
+      setupChat();
+      log("Joined room", roomId);
+    }
+
+    // === Chat ===
+    function setupChat() {
+      db.ref("chats/" + roomId).on("child_added", msgSnap => {
+        const msg = msgSnap.val();
+        const div = document.createElement("div");
+        div.textContent = msg.user + ": " + msg.text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+    }
+
+    document.getElementById("sendBtn").onclick = () => {
+      const msg = chatInput.value;
+      if (!msg || !roomId) return;
+      const user = document.getElementById("username").value || "User";
+      db.ref("chats/" + roomId).push({ user, text: msg });
+      chatInput.value = "";
+    };
+
+    // === Screen share ===
     document.getElementById("shareScreen").onclick = async () => {
+      if (!roomId) return alert("Join or create a room first");
+
       if (isHost) {
         startScreenShare();
       } else {
-        const username = document.getElementById("username").value || "Anonymous";
-        db.ref("rooms/" + roomId + "/requests").push({ id: myId, user: username, handled: false });
-        log("Requested screen share. Waiting for host approval...");
+        db.ref(`requests/${roomId}`).push({ from: myId });
+        alert("Request sent to host");
       }
     };
+
+    db.ref("requests").on("child_added", snap => {
+      const rId = snap.key;
+      if (rId !== roomId || !isHost) return;
+      snap.ref.on("child_added", reqSnap => {
+        const req = reqSnap.val();
+        if (confirm("Allow " + req.from + " to share screen?")) {
+          db.ref(`approvals/${roomId}/${req.from}`).set(true);
+        }
+      });
+    });
+
+    db.ref("approvals").on("child_added", snap => {
+      const rId = snap.key;
+      if (rId !== roomId) return;
+      snap.ref.on("child_added", async appSnap => {
+        if (appSnap.key === myId) {
+          startScreenShare();
+        }
+      });
+    });
 
     async function startScreenShare() {
       try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
 
+        // replace track locally
+        localStream.removeTrack(currentVideoTrack);
+        localStream.addTrack(screenTrack);
+        localVideo.srcObject = localStream;
+        currentVideoTrack.stop();
+        currentVideoTrack = screenTrack;
+
+        // replace track for each peer
         Object.values(peers).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
           if (sender) sender.replaceTrack(screenTrack);
         });
 
-        screenTrack.onended = () => {
-          revertToCamera();
-        };
-
-        localVideo.srcObject = screenStream;
         log("Screen sharing started");
       } catch (err) {
-        log("Screen share failed:", err);
+        console.error("Screen share failed", err);
       }
-    }
-
-    async function revertToCamera() {
-      const camStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode },
-        audio: true
-      });
-      const camTrack = camStream.getVideoTracks()[0];
-      localStream.removeTrack(localStream.getVideoTracks()[0]);
-      localStream.addTrack(camTrack);
-
-      Object.values(peers).forEach(pc => {
-        const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
-        if (sender) sender.replaceTrack(camTrack);
-      });
-
-      localVideo.srcObject = camStream;
-      log("Reverted to camera");
     }
 
     // === Controls ===
@@ -286,35 +287,24 @@
     document.getElementById("switchCamera").onclick = async () => {
       if (!localStream) return;
       currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode },
-          audio: true
-        });
-        const newVideoTrack = newStream.getVideoTracks()[0];
-        const oldVideoTrack = localStream.getVideoTracks()[0];
-        localStream.removeTrack(oldVideoTrack);
-        oldVideoTrack.stop();
-        localStream.addTrack(newVideoTrack);
-        localVideo.srcObject = localStream;
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacingMode },
+        audio: true
+      });
+      const newTrack = newStream.getVideoTracks()[0];
 
-        Object.values(peers).forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(newVideoTrack);
-        });
-        log("Switched to", currentFacingMode, "camera");
-      } catch (e) {
-        log("Camera switch failed:", e);
-      }
-    };
+      localStream.removeTrack(currentVideoTrack);
+      currentVideoTrack.stop();
+      localStream.addTrack(newTrack);
+      currentVideoTrack = newTrack;
+      localVideo.srcObject = localStream;
 
-    // === Chat send ===
-    document.getElementById("sendBtn").onclick = () => {
-      const msg = chatInput.value;
-      if (!msg || !roomId) return;
-      const username = document.getElementById("username").value || "Anonymous";
-      db.ref("chats/" + roomId).push({ user: username, text: msg });
-      chatInput.value = "";
+      Object.values(peers).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+        if (sender) sender.replaceTrack(newTrack);
+      });
+
+      log("Switched camera");
     };
   </script>
 </body>

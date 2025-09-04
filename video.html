@@ -30,6 +30,7 @@
     <button id="toggleAudio">Mute</button>
     <button id="toggleVideo">Stop Video</button>
     <button id="switchCamera">Switch Camera</button>
+    <button id="shareScreen">Share Screen</button>
   </div>
 
   <div id="videos">
@@ -74,6 +75,7 @@
     let roomId;
     let peers = {};
     let currentFacingMode = "user";
+    let isHost = false;
     const myId = Math.random().toString(36).substr(2, 6);
 
     function log(...args) {
@@ -110,7 +112,9 @@
       await startLocalStream();
       roomId = Math.random().toString(36).substr(2, 6).toUpperCase();
       document.getElementById("roomId").value = roomId;
-      log("Created room", roomId);
+      isHost = true;
+      db.ref("rooms/" + roomId).set({ hostId: myId });
+      log("Created room", roomId, "(You are host)");
     }
 
     // === Join room ===
@@ -122,18 +126,45 @@
       const roomRef = db.ref("rooms/" + roomId + "/members");
       const myRef = roomRef.push({ id: myId });
 
+      // Check host
+      const roomInfo = await db.ref("rooms/" + roomId).get();
+      if (roomInfo.exists() && roomInfo.val().hostId === myId) isHost = true;
+
       // Listen for new peers
       roomRef.on("child_added", snap => {
         const peerId = snap.val().id;
         if (peerId === myId) return;
-
-        // Decide who initiates: higher ID starts offer
         const isInitiator = myId > peerId;
         if (!peers[peerId]) startPeer(peerId, isInitiator);
       });
 
-      // Cleanup when leaving
+      // Cleanup
       window.addEventListener("beforeunload", () => myRef.remove());
+
+      // If I am host → listen for screen share requests
+      if (isHost) {
+        db.ref("rooms/" + roomId + "/requests").on("child_added", snap => {
+          const req = snap.val();
+          if (req && !req.handled) {
+            if (confirm(req.user + " wants to share screen. Allow?")) {
+              db.ref("rooms/" + roomId + "/permissions/" + req.id).set({ allowed: true });
+            } else {
+              db.ref("rooms/" + roomId + "/permissions/" + req.id).set({ allowed: false });
+            }
+            snap.ref.update({ handled: true });
+          }
+        });
+      }
+
+      // Listen for permission granted
+      db.ref("rooms/" + roomId + "/permissions/" + myId).on("value", async snap => {
+        const perm = snap.val();
+        if (perm && perm.allowed) {
+          startScreenShare();
+        } else if (perm && perm.allowed === false) {
+          alert("Host denied screen sharing.");
+        }
+      });
     }
 
     // === Start peer connection ===
@@ -142,7 +173,6 @@
       peers[peerId] = pc;
 
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
       pc.ontrack = e => addRemoteVideo(peerId, e.streams[0]);
 
       const connRef = db.ref(`signals/${roomId}/${myId}-${peerId}`);
@@ -152,14 +182,12 @@
         if (e.candidate) connRef.push({ candidate: e.candidate.toJSON() });
       };
 
-      // Initiator creates offer
       if (isInitiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         connRef.push({ offer: { type: offer.type, sdp: offer.sdp } });
       }
 
-      // Listen for remote signals
       backRef.on("child_added", async snap => {
         const data = snap.val();
         if (data.offer) {
@@ -172,13 +200,60 @@
         } else if (data.answer && !pc.currentRemoteDescription) {
           await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
         } else if (data.candidate) {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-          } catch (err) {
-            console.error("Error adding ICE", err);
-          }
+          try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); }
+          catch (err) { console.error("Error adding ICE", err); }
         }
       });
+    }
+
+    // === Screen share request ===
+    document.getElementById("shareScreen").onclick = async () => {
+      if (isHost) {
+        startScreenShare();
+      } else {
+        const username = document.getElementById("username").value || "Anonymous";
+        db.ref("rooms/" + roomId + "/requests").push({ id: myId, user: username, handled: false });
+        log("Requested screen share. Waiting for host approval...");
+      }
+    };
+
+    async function startScreenShare() {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = screenStream.getVideoTracks()[0];
+
+        Object.values(peers).forEach(pc => {
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(screenTrack);
+        });
+
+        screenTrack.onended = () => {
+          revertToCamera();
+        };
+
+        localVideo.srcObject = screenStream;
+        log("Screen sharing started");
+      } catch (err) {
+        log("Screen share failed:", err);
+      }
+    }
+
+    async function revertToCamera() {
+      const camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacingMode },
+        audio: true
+      });
+      const camTrack = camStream.getVideoTracks()[0];
+      localStream.removeTrack(localStream.getVideoTracks()[0]);
+      localStream.addTrack(camTrack);
+
+      Object.values(peers).forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+        if (sender) sender.replaceTrack(camTrack);
+      });
+
+      localVideo.srcObject = camStream;
+      log("Reverted to camera");
     }
 
     // === Controls ===

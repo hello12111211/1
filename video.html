@@ -126,7 +126,10 @@
       roomRef.on("child_added", snap => {
         const peerId = snap.val().id;
         if (peerId === myId) return;
-        if (!peers[peerId]) startPeer(peerId);
+
+        // Decide who initiates: higher ID starts offer
+        const isInitiator = myId > peerId;
+        if (!peers[peerId]) startPeer(peerId, isInitiator);
       });
 
       // Cleanup when leaving
@@ -134,7 +137,7 @@
     }
 
     // === Start peer connection ===
-    async function startPeer(peerId) {
+    async function startPeer(peerId, isInitiator) {
       const pc = new RTCPeerConnection();
       peers[peerId] = pc;
 
@@ -149,31 +152,31 @@
         if (e.candidate) connRef.push({ candidate: e.candidate.toJSON() });
       };
 
-      // Send offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      connRef.push({ offer: { type: offer.type, sdp: offer.sdp } });
+      // Initiator creates offer
+      if (isInitiator) {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        connRef.push({ offer: { type: offer.type, sdp: offer.sdp } });
+      }
 
-      // Listen for answer / candidates
+      // Listen for remote signals
       backRef.on("child_added", async snap => {
         const data = snap.val();
-        if (data.answer && !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-        }
-        if (data.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
-      });
-
-      // Respond to offers from others
-      const offerRef = db.ref(`signals/${roomId}/${peerId}-${myId}`);
-      offerRef.on("child_added", async snap => {
-        const data = snap.val();
         if (data.offer) {
-          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          backRef.push({ answer: { type: answer.type, sdp: answer.sdp } });
+          if (!pc.currentRemoteDescription) {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            connRef.push({ answer: { type: answer.type, sdp: answer.sdp } });
+          }
+        } else if (data.answer && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        } else if (data.candidate) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (err) {
+            console.error("Error adding ICE", err);
+          }
         }
       });
     }

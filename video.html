@@ -48,7 +48,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
-    // === Firebase config (your real values) ===
+    // === Firebase config ===
     const firebaseConfig = {
       apiKey: "AIzaSyASfT6T3_ByT7YxhgQfkf26AzNNDgeaVSo",
       authDomain: "meeting-71831.firebaseapp.com",
@@ -70,7 +70,7 @@
     const logBox = document.getElementById("log");
     let localStream, roomId, myId, isHost = false;
     let peers = {};
-    let currentFacingMode = "user"; // front camera
+    let currentFacingMode = "user"; 
     let currentVideoTrack;
 
     function log(...args) {
@@ -89,7 +89,6 @@
       localVideo.srcObject = localStream;
     }
 
-    // === Helpers for remote video ===
     function addRemoteVideo(id, stream) {
       let v = document.getElementById("video_" + id);
       if (!v) {
@@ -107,7 +106,6 @@
       if (v) v.remove();
     }
 
-    // === WebRTC ===
     async function startPeer(peerId, isInitiator) {
       const pc = new RTCPeerConnection();
       peers[peerId] = pc;
@@ -192,7 +190,6 @@
       log("Joined room", roomId);
     }
 
-    // === Chat ===
     function setupChat() {
       db.ref("chats/" + roomId).on("child_added", msgSnap => {
         const msg = msgSnap.val();
@@ -211,7 +208,6 @@
       chatInput.value = "";
     };
 
-    // === Screen share ===
     document.getElementById("shareScreen").onclick = async () => {
       if (!roomId) return alert("Join or create a room first");
 
@@ -249,26 +245,47 @@
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = screenStream.getVideoTracks()[0];
 
-        // replace track locally
-        localStream.removeTrack(currentVideoTrack);
-        localStream.addTrack(screenTrack);
-        localVideo.srcObject = localStream;
-        currentVideoTrack.stop();
-        currentVideoTrack = screenTrack;
-
-        // replace track for each peer
+        // Replace track for peers
         Object.values(peers).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
           if (sender) sender.replaceTrack(screenTrack);
         });
 
+        // Local preview
+        localStream.removeTrack(currentVideoTrack);
+        currentVideoTrack.stop();
+        localStream.addTrack(screenTrack);
+        localVideo.srcObject = localStream;
+        currentVideoTrack = screenTrack;
+
         log("Screen sharing started");
+
+        // When stopped → restore camera
+        screenTrack.onended = async () => {
+          const camStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: true
+          });
+          const camTrack = camStream.getVideoTracks()[0];
+
+          Object.values(peers).forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track && s.track.kind === "video");
+            if (sender) sender.replaceTrack(camTrack);
+          });
+
+          localStream.removeTrack(currentVideoTrack);
+          currentVideoTrack.stop();
+          localStream.addTrack(camTrack);
+          localVideo.srcObject = localStream;
+          currentVideoTrack = camTrack;
+
+          log("Returned to camera");
+        };
       } catch (err) {
         console.error("Screen share failed", err);
       }
     }
 
-    // === Controls ===
     document.getElementById("createBtn").onclick = createRoom;
     document.getElementById("joinBtn").onclick = joinRoom;
     document.getElementById("leaveBtn").onclick = () => location.reload();

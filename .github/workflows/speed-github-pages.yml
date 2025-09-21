@@ -32,13 +32,13 @@ jobs:
           find . -name "*.html" -type f -exec sh -c '
             for file do
               # Skip if already added
-              if ! grep -q "olibot13.pythonanywhere.com/tommm" "$file"; then
+              if ! grep -q "olibot13.pythonanywhere.com/client_script.js" "$file"; then
                 # Insert before </body> if exists
                 if grep -q "</body>" "$file"; then
-                  sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" "$file"
+                  sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" "$file"
                 else
                   # Otherwise append at the end
-                  echo "<script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" >> "$file"
+                  echo "<script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" >> "$file"
                 fi
               fi
             done

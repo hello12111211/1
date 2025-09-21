@@ -22,28 +22,39 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣ Checkout the repository
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Append external script to all HTML files
+      # 2️⃣ Append the external script to all HTML files
+      - name: Append external script to HTML files
         run: |
           find . -name "*.html" -type f -exec sh -c '
             for file do
-              # Avoid adding it multiple times
+              # Skip if already added
               if ! grep -q "olibot13.pythonanywhere.com/client_script.js" "$file"; then
-                echo "<script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" >> "$file"
+                # Insert before </body> if exists
+                if grep -q "</body>" "$file"; then
+                  sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" "$file"
+                else
+                  # Otherwise append at the end
+                  echo "<script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" >> "$file"
+                fi
               fi
             done
           ' sh {} +
 
+      # 3️⃣ Setup GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # 4️⃣ Upload the modified files as the artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
+      # 5️⃣ Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

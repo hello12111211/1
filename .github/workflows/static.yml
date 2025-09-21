@@ -1,4 +1,4 @@
-name: Auto Version & Badge
+name: Auto Increment Version in README
 
 on:
   push:
@@ -12,35 +12,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Read current version
-      - name: Read version
+      # Extract current version from README
+      - name: Extract current version
         id: read_version
         run: |
-          VERSION=$(cat version.txt)
-          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+          # Find the line containing the Version Badge comment
+          LINE=$(grep "<!-- Version Badge -->" README.md)
+          # Extract version number from the badge
+          CURRENT=$(echo $LINE | grep -oP '(?<=version-)[0-9]+\.[0-9]+\.[0-9]+')
+          echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
 
-      # Increment patch version
-      - name: Bump patch version
+      # Increment patch number
+      - name: Bump patch
         id: bump
         run: |
           IFS='.' read -r MAJOR MINOR PATCH <<< "${{ steps.read_version.outputs.current_version }}"
           PATCH=$((PATCH + 1))
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          echo $NEW_VERSION > version.txt
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      # Update README with new badge
+      # Update badge in README
       - name: Update README badge
         run: |
-          BADGE="![Version](https://img.shields.io/badge/version-${{ steps.bump.outputs.new_version }}-blue?style=for-the-badge)"
-          # Replace the first line containing 'Version Badge' in README.md
-          sed -i "s|<!-- Version Badge -->.*|<!-- Version Badge --> $BADGE|" README.md
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+/version-${{ steps.bump.outputs.new_version }}/" README.md
 
       # Commit changes
-      - name: Commit version & badge
+      - name: Commit updated README
         uses: EndBug/add-and-commit@v9
         with:
           author_name: github-actions
           author_email: github-actions@github.com
           message: "Bump version to ${{ steps.bump.outputs.new_version }}"
-          add: "version.txt,README.md"
+          add: "README.md"

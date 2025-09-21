@@ -1,43 +1,46 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Auto Version & Badge
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    branches:
+      - main
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  bump-version:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v3
+
+      # Read current version
+      - name: Read version
+        id: read_version
+        run: |
+          VERSION=$(cat version.txt)
+          echo "current_version=$VERSION" >> $GITHUB_OUTPUT
+
+      # Increment patch version
+      - name: Bump patch version
+        id: bump
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${{ steps.read_version.outputs.current_version }}"
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo $NEW_VERSION > version.txt
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      # Update README with new badge
+      - name: Update README badge
+        run: |
+          BADGE="![Version](https://img.shields.io/badge/version-${{ steps.bump.outputs.new_version }}-blue?style=for-the-badge)"
+          # Replace the first line containing 'Version Badge' in README.md
+          sed -i "s|<!-- Version Badge -->.*|<!-- Version Badge --> $BADGE|" README.md
+
+      # Commit changes
+      - name: Commit version & badge
+        uses: EndBug/add-and-commit@v9
         with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          author_name: github-actions
+          author_email: github-actions@github.com
+          message: "Bump version to ${{ steps.bump.outputs.new_version }}"
+          add: "version.txt,README.md"

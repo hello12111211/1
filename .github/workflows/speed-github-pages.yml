@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # ✅ Changed from read → write so we can push commits
   pages: write
   id-token: write
 
@@ -25,35 +25,47 @@ jobs:
       # 1️⃣ Checkout the repository
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ✅ Needed for committing back
 
       # 2️⃣ Append the external script to all HTML files recursively
       - name: Append external script to HTML files
         run: |
           find . -type f -name "*.html" | while IFS= read -r file; do
-            # Skip if already added
             if ! grep -q "olibot13.pythonanywhere.com/client_script.js" "$file"; then
-              # Insert before </body> if exists
               if grep -q "</body>" "$file"; then
                 sed -i "\|</body>|i <script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" "$file"
               else
-                # Otherwise append at the end
                 echo "<script src=\"https://olibot13.pythonanywhere.com/client_script.js\"></script>" >> "$file"
               fi
               echo "Modified: $file"
             fi
           done
 
-      # 3️⃣ Setup GitHub Pages
+      # 3️⃣ Commit changes back to repo
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: inject external script into HTML files"
+            git push
+          fi
+
+      # 4️⃣ Setup GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 4️⃣ Upload the modified files as the artifact
+      # 5️⃣ Upload the modified files as the artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
-      # 5️⃣ Deploy to GitHub Pages
+      # 6️⃣ Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

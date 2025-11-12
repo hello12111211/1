@@ -1,0 +1,1 @@
+javascript:(function()%7Bvar%20audio=new%20Audio('https://www.myinstants.com/media/sounds/jixaw-metal-pipe-falling-sound.mp3');audio.play();var%20imgs=document.getElementsByTagName('img');for(var%20i=0;i%3Cimgs.length;i++)%7Bimgs%5Bi%5D.src='https://hello12111211.github.io/1/Bookmarks/gandi.jpeg';%7D%7D)();

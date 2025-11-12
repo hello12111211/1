@@ -1,1 +1,0 @@
-javascript:(function()%7Bvar%20audio=new%20Audio('https://www.myinstants.com/media/sounds/jixaw-metal-pipe-falling-sound.mp3');audio.play();var%20imgs=document.getElementsByTagName('img');for(var%20i=0;i%3Cimgs.length;i++)%7Bimgs%5Bi%5D.src='https://i.kym-cdn.com/entries/icons/original/000/043/027/metalpipefalling.jpg';%7D%7D)();

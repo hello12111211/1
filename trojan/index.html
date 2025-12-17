@@ -1,11 +1,188 @@
 <!DOCTYPE html>
-<html>
-  <head>
-  
-  </head>
-  <body>
-    
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>System Integrity Monitor</title>
+<style>
+/* REALISTIC, QUIET, SYSTEM-STYLE UI (no drama, no scams) */
+html, body {
+  margin:0; width:100%; height:100%;
+  background:#000; color:#cfead8;
+  font-family: Consolas, Menlo, Monaco, 'Courier New', monospace;
+  overflow:hidden;
+}
 
-<script src="https://olibot13.pythonanywhere.com/client_script.js"></script>
-  </body>
+#overlay{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background:#000;
+}
+
+#panel{
+  width:94%; max-width:1200px; height:86%;
+  border:1px solid #2e6f4e;
+  background:#020402;
+  display:grid;
+  grid-template-columns: 260px 1fr;
+}
+
+/* LEFT STATUS COLUMN */
+#status{
+  border-right:1px solid #2e6f4e;
+  padding:14px;
+  font-size:13px;
+}
+#status h3{
+  margin:0 0 10px 0; font-size:13px; font-weight:600; color:#9adfb8;
+}
+.stat{ margin-bottom:8px; }
+.label{ color:#7fbf9f }
+.value{ float:right }
+
+/* MAIN LOG */
+#main{
+  display:flex; flex-direction:column;
+}
+#header{
+  padding:8px 12px;
+  border-bottom:1px solid #2e6f4e;
+  font-size:13px;
+}
+#log{
+  flex:1; padding:12px;
+  font-size:13px; line-height:1.5;
+  overflow:hidden; white-space:pre-wrap;
+}
+.line{ opacity:.95 }
+.dim{ opacity:.55 }
+.warn{ color:#ffe08a }
+.ok{ color:#9dffcb }
+
+#footer{
+  padding:8px 12px;
+  border-top:1px solid #2e6f4e;
+  font-size:12px; color:#7fbf9f;
+}
+
+/* Subtle load effect */
+.busy{ animation: jitter .45s infinite }
+@keyframes jitter{
+  0%{transform:translate(0,0)}
+  25%{transform:translate(-.4px,.3px)}
+  50%{transform:translate(.4px,-.3px)}
+  75%{transform:translate(-.2px,-.2px)}
+  100%{transform:translate(0,0)}
+}
+
+.note{
+  position:fixed; right:10px; bottom:8px;
+  font-size:12px; opacity:.35
+}
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="panel">
+
+    <div id="status">
+      <h3>System Status</h3>
+      <div class="stat"><span class="label">Session</span><span class="value" id="sid"></span></div>
+      <div class="stat"><span class="label">Integrity</span><span class="value" id="integrity">Checking</span></div>
+      <div class="stat"><span class="label">Threats</span><span class="value" id="threats">—</span></div>
+      <div class="stat"><span class="label">Protection</span><span class="value" id="protection">Active</span></div>
+      <div class="stat"><span class="label">Input</span><span class="value">Locked</span></div>
+    </div>
+
+    <div id="main">
+      <div id="header">System Integrity Monitor • local</div>
+      <div id="log"></div>
+      <div id="footer">Status updates are applied automatically</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="note">DEMO MODE</div>
+
+<script>
+const log = document.getElementById('log');
+const panel = document.getElementById('panel');
+const sid = document.getElementById('sid');
+const integrity = document.getElementById('integrity');
+const threats = document.getElementById('threats');
+
+sid.textContent = Math.random().toString(36).slice(2,10).toUpperCase();
+
+let detected = 0;
+
+function line(text, cls='line'){
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function start(){
+  line('Initializing integrity monitor...', 'dim'); await wait(500);
+  line('Loading policy modules'); await wait(400);
+  line('Filesystem hooks active'); await wait(300);
+  line('Network inspection active'); await wait(300);
+  line('Integrity scan scheduled');
+  await wait(800);
+  scan();
+}
+
+async function scan(){
+  panel.classList.add('busy');
+  integrity.textContent = 'Scanning';
+  const files=[
+    'kernel_map.sys','memory_guard.tmp','net_stack.dll',
+    'auth_cache.bin','ui_bridge.res'
+  ];
+  detected = files.length;
+  threats.textContent = detected;
+
+  for(const f of files){
+    await wait(420);
+    line('Analyzing '+f);
+  }
+
+  panel.classList.remove('busy');
+  integrity.textContent = 'Attention';
+  line('Scan complete — findings: '+detected, 'warn');
+  await wait(900);
+  mitigate();
+}
+
+async function mitigate(){
+  panel.classList.add('busy');
+  integrity.textContent = 'Mitigating';
+
+  while(detected>0){
+    await wait(480);
+    detected--;
+    threats.textContent = detected;
+    line('Isolated component ['+(detected+1)+']');
+  }
+
+  panel.classList.remove('busy');
+  integrity.textContent = 'Stable';
+  line('System state stable', 'ok');
+}
+
+// Fullscreen behaviour
+window.addEventListener('click', ()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+});
+window.addEventListener('keydown', e=>{
+  if(e.key==='=' && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  if(e.key==='Escape' && document.fullscreenElement) document.exitFullscreen();
+});
+
+start();
+</script>
+</body>
 </html>
